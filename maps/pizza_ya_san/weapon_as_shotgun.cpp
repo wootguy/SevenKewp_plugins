@@ -1,23 +1,35 @@
-#include "extdll.h"
+﻿#include "extdll.h"
 #include "util.h"
-#include "cbase.h"
-#include "CBasePlayer.h"
 #include "CBasePlayerWeapon.h"
-#include "user_messages.h"
-#include "ammo.h"
-#include "weapons.h"
-#include "monsters.h"
-#include "PluginHooks.h"
 
+/*
+ * HLベース改造ショットガン
+ *
+ * fgdファイルに下記を追加して、エンティティとしてマップに仕込むこと。
+ * @PointClass base(Weapon, Targetx, ExclusiveHold) studio("models/pizza_ya_san/w_shotgun_shorty.mdl") = weapon_as_shotgun : "custom shotgun" []
+ */
 const Vector VECTOR_CONE_DM_SHOTGUN(0.13074, 0.13074, 0.00);		// 15 degrees
 
 #define AS_SHOTGUN_DEFAULT_AMMO 12
 #define AS_SHOTGUN_MAX_CARRY 125
 #define AS_SHOTGUN_MAX_CLIP 4
 #define AS_SHOTGUN_WEIGHT 15
-#define AS_WEAPON_SHOTGUN_ID 17
 
 #define AS_SHOTGUN_PELLETCOUNT 9
+
+ItemInfo g_shotgun_info = {
+	2,								// iSlot
+	-1,								// iPosition (-1 = automatic)
+	"buckshot",						// pszAmmo1
+	BUCKSHOT_MAX_CARRY,				// iMaxAmmo1
+	NULL,							// pszAmmo2
+	-1,								// iMaxAmmo2
+	"pizza_ya_san/weapon_as_shotgun",// pszName (path to HUD config)
+	AS_SHOTGUN_MAX_CLIP,			// iMaxClip
+	-1,								// iId (-1 = automatic)
+	0,								// iFlags
+	AS_SHOTGUN_WEIGHT				// iWeight
+};
 
 enum ShotgunAnimation
 {
@@ -47,7 +59,7 @@ class CPizzaShotgun : public CBasePlayerWeapon
 		SET_MODEL(edict(), "models/pizza_ya_san/w_shotgun_shorty.mdl");
 
 		m_iDefaultAmmo = AS_SHOTGUN_DEFAULT_AMMO;
-		m_iId = AS_WEAPON_SHOTGUN_ID;
+		m_iId = g_shotgun_info.iId;
 
 		FallInit();// get ready to fall
 	}
@@ -92,19 +104,7 @@ class CPizzaShotgun : public CBasePlayerWeapon
 
 	int GetItemInfo(ItemInfo* p)
 	{
-		// hack to force client to load HUD config from a subfolder
-		p->pszName = "pizza_ya_san/weapon_as_shotgun";
-
-		p->pszAmmo1 = "buckshot";
-		p->iMaxAmmo1 = BUCKSHOT_MAX_CARRY;
-		p->pszAmmo2 = NULL;
-		p->iMaxAmmo2 = -1;
-		p->iMaxClip = AS_SHOTGUN_MAX_CLIP;
-		p->iSlot = 2;
-		p->iPosition = 4;
-		p->iId = AS_WEAPON_SHOTGUN_ID;
-		p->iWeight = AS_SHOTGUN_WEIGHT;
-
+		*p = g_shotgun_info;
 		return 1;
 	}
 
@@ -210,7 +210,7 @@ class CPizzaShotgun : public CBasePlayerWeapon
 
 		EjectBrass(vecSrc + m_pPlayer->pev->view_ofs + gpGlobals->v_up * -34 + gpGlobals->v_forward * 14 + gpGlobals->v_right * 6, vecShellVelocity, m_pPlayer->pev->angles.y, m_iShell, TE_BOUNCE_SHELL);
 
-		if (m_iClip == 0 && m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] <= 0)
+		if (m_iClip == 0 && m_pPlayer->rgAmmo(m_iPrimaryAmmoType) <= 0)
 			// HEV suit - indicate out of ammo condition
 			m_pPlayer->SetSuitUpdate("!HEV_AMO0", false, 0);
 
@@ -259,7 +259,7 @@ class CPizzaShotgun : public CBasePlayerWeapon
 		if (!m_pPlayer)
 			return;
 
-		if (m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] <= 0 || m_iClip == AS_SHOTGUN_MAX_CLIP)
+		if (m_pPlayer->rgAmmo(m_iPrimaryAmmoType) <= 0 || m_iClip == AS_SHOTGUN_MAX_CLIP)
 			return;
 
 		if (m_flNextReload > gpGlobals->time)
@@ -300,7 +300,7 @@ class CPizzaShotgun : public CBasePlayerWeapon
 
 			// Add them to the clip
 			m_iClip += 1;
-			m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] = m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] - 1;
+			m_pPlayer->rgAmmo(m_iPrimaryAmmoType, m_pPlayer->rgAmmo(m_iPrimaryAmmoType) - 1);
 
 			int r = RANDOM_LONG(0, 1);
 			switch (r)
@@ -329,13 +329,13 @@ class CPizzaShotgun : public CBasePlayerWeapon
 
 		if (m_flTimeWeaponIdle < gpGlobals->time)
 		{
-			if (m_iClip == 0 && !m_fReloading && m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] != 0)
+			if (m_iClip == 0 && !m_fReloading && m_pPlayer->rgAmmo(m_iPrimaryAmmoType) != 0)
 			{
 				Reload();
 			}
 			else if (m_fReloading)
 			{
-				if (m_iClip != AS_SHOTGUN_MAX_CLIP && m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] > 0)
+				if (m_iClip != AS_SHOTGUN_MAX_CLIP && m_pPlayer->rgAmmo(m_iPrimaryAmmoType) > 0)
 				{
 					Reload();
 				}
@@ -375,29 +375,3 @@ class CPizzaShotgun : public CBasePlayerWeapon
 };
 
 LINK_ENTITY_TO_CLASS(weapon_as_shotgun, CPizzaShotgun);
-
-HOOK_RETURN_CODE MapInit() {
-	UTIL_RegisterWeapon("weapon_as_shotgun");
-
-	return HOOK_CONTINUE;
-}
-
-extern "C" int DLLEXPORT PluginInit(HLCOOP_PLUGIN_HOOKS* pFunctionTable, int interfaceVersion) {
-	static HLCOOP_PLUGIN_HOOKS hooks = {
-		MapInit,
-		NULL
-	};
-
-	if (interfaceVersion != HLCOOP_API_VERSION) {
-		ALERT(at_error, "Plugin API version mismatch (%d != %d)\n", interfaceVersion, HLCOOP_API_VERSION);
-		return 0;
-	}
-
-	memcpy(pFunctionTable, &hooks, sizeof(HLCOOP_PLUGIN_HOOKS));
-
-	return 1;
-}
-
-extern "C" void DLLEXPORT PluginExit() {
-	ALERT(at_console, "Ahoy from plugin exit!\n");
-}
