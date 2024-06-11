@@ -25,7 +25,7 @@ const float STRIKE_BEFORE = 5.0;    // 要請後のDelay
 const float BONUS_RANGE = 120.0;
 
 ItemInfo g_soflam_info = {
-	3,								// iSlot
+	1,								// iSlot
 	-1,								// iPosition (-1 = automatic)
 	"rockets",						// pszAmmo1
 	SOFLAM_MAX_AMMO,				// iMaxAmmo1

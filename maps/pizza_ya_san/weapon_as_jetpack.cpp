@@ -31,7 +31,7 @@ const float NORMAL_GRAVITY = 1.0;
 const int FUEL_CYCLE = 60;
 
 ItemInfo g_jetpack_info = {
-	2,								// iSlot
+	1,								// iSlot
 	-1,								// iPosition (-1 = automatic)
 	"9mm",							// pszAmmo1
 	JETPACK_MAX_AMMO,				// iMaxAmmo1
