@@ -1,8 +1,6 @@
 project(pizza_ya_san)
 
-include(${MOD_DIR}/scripts/hlcoop.cmake)
-
-add_library(${PROJECT_NAME} SHARED ${HLCOOP_HEADERS} 
+add_library(${PROJECT_NAME} SHARED
 	weapon_as_shotgun.cpp
 	weapon_as_soflam.cpp
 	weapon_as_jetpack.cpp
