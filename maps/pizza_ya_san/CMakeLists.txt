@@ -7,4 +7,4 @@ add_library(${PROJECT_NAME} SHARED
 	pizza_ya_san.cpp
 )
 
-hlcoop_setup_plugin("plugins/maps/pizza_ya_san/")
+hlcoop_setup_plugin("plugins/maps/")
