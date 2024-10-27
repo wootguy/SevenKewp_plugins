@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.2)
 
-include(${CMAKE_CURRENT_SOURCE_DIR}/../../hlcoop.cmake)
+include(${CMAKE_SOURCE_DIR}/SevenKewp/scripts/hlcoop.cmake)
 project(pizza_ya_san)
 
 add_library(${PROJECT_NAME} SHARED ${HLCOOP_HEADERS} 
