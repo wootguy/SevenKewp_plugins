@@ -9,7 +9,7 @@ extern ItemInfo g_jetpack_info;
 
 HLCOOP_PLUGIN_HOOKS g_hooks;
 
-HOOK_RETURN_CODE MapInit() {
+HOOK_RETURN_DATA MapInit() {
 	g_shotgun_info = UTIL_RegisterWeapon("weapon_as_shotgun");
 	g_soflam_info = UTIL_RegisterWeapon("weapon_as_soflam");
 	g_jetpack_info = UTIL_RegisterWeapon("weapon_as_jetpack");
