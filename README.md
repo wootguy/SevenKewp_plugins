@@ -8,10 +8,7 @@ Development of these plugins is nearly the same as coding for the mod directly. 
 ## Installation / dev setup / documentation / etc.
 Coming eventually...
 
-but here's some basic instructions for building:
-- `git clone --recurse-submodules https://github.com/wootguy/SevenKewp_plugins`
-- run `build_all.bat` or `build_all.sh`
-- copy the DLLs or SOs to `valve_downloads/plugins/maps/`
+[but here's some basic instructions for building](https://github.com/wootguy/SevenKewp?tab=readme-ov-file#building-plugins)
 
 Check the plugins here to see how to create custom entities and stuff.
 
