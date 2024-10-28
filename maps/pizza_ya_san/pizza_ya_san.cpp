@@ -17,10 +17,10 @@ HOOK_RETURN_DATA MapInit() {
 	return HOOK_CONTINUE;
 }
 
-extern "C" int DLLEXPORT PluginInit(HLCOOP_PLUGIN_HOOKS* pFunctionTable, int interfaceVersion) {
+extern "C" int DLLEXPORT PluginInit(void* plugin, int interfaceVersion) {
 	g_hooks.pfnMapInit = MapInit;
 
-	return InitPluginApi(pFunctionTable, &g_hooks, interfaceVersion);
+	return InitPluginApi(plugin, &g_hooks, interfaceVersion);
 }
 
 extern "C" void DLLEXPORT PluginExit() {
