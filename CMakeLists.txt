@@ -1,3 +1,3 @@
 project(plugins)
 
-add_subdirectory(maps/pizza_ya_san)
+add_subdirectory(pizza_ya_san)
