@@ -171,10 +171,10 @@ class CSoflam : public CBasePlayerWeapon {
 			m_lastStrike = WeaponTimeBase() + STRIKE_BEFORE;
 
 			if (strikeType == 0) {
-				UTIL_ClientPrint(m_pPlayer->edict(), HUD_PRINTCENTER, "Fire support was requested!!\n\nTake cover!!");
+				UTIL_ClientPrint(m_pPlayer, print_center, "Fire support was requested!!\n\nTake cover!!");
 			}
 			else {
-				UTIL_ClientPrint(m_pPlayer->edict(), HUD_PRINTCENTER, "Wide range fire support was requested!!\n\nTake cover!!");
+				UTIL_ClientPrint(m_pPlayer, print_center, "Wide range fire support was requested!!\n\nTake cover!!");
 			}
 
 			// 天井などで失敗している場合
@@ -185,7 +185,7 @@ class CSoflam : public CBasePlayerWeapon {
 			m_flNextPrimaryAttack = WeaponTimeBase() + 1.0;
 			m_flNextSecondaryAttack = WeaponTimeBase() + 1.0;
 
-			UTIL_ClientPrint(m_pPlayer->edict(), HUD_PRINTCENTER, "Can not execute fire support to there!!");
+			UTIL_ClientPrint(m_pPlayer, print_center, "Can not execute fire support to there!!");
 		}
 	}
 

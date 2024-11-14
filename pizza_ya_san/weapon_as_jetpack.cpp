@@ -310,7 +310,7 @@ class CJetpack : public CBasePlayerWeapon {
 			m_flNextPrimaryAttack = WeaponTimeBase() + 0.5;
 			m_flNextSecondaryAttack = WeaponTimeBase() + 0.5;
 
-			UTIL_ClientPrint(m_pPlayer->edict(), HUD_PRINTCENTER, UTIL_VarArgs("Boost Level: %d", m_iClip));
+			UTIL_ClientPrint(m_pPlayer, print_center, UTIL_VarArgs("Boost Level: %d", m_iClip));
 		}
 	}
 
