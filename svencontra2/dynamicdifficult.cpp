@@ -1,46 +1,27 @@
-const string CVAR_KNNAME = "sk_plr_crowbar";
-class CWeaponDMGBase {
-    float AR = 15;
-    float SG = 18;
-    float MG = 25;
-    float FG = 55;
-    float FGE = 100;
-    float KN = 15;
-    float LG = 20;
-    //默认值
-    float ARD = AR;
-    float SGD = SG;
-    float MGD = MG;
-    float FGD = FG;
-    float FGED = FGE;
-    float KND = KN;
-    float LGD = LG;
-    void Tweak(float factor){
-        this->AR = factor * this->ARD;
-        this->SG = factor * this->SGD;
-        this->MG = factor * this->MGD;
-        this->FG = factor * this->FGD;
-        this->FGE = factor * this->FGED;
-        this->LG = factor * this->LGD;
-        this->KN = factor * this->KND;
-        g_engfuncs.pfnCVarSetFloat(CVAR_KNNAME, this->KN);
-    }
-    vector<float> aryTweakFactors = {
-        1.0000000f,1.0000000f,1.0000000f,0.8143534f,0.7705802f,0.7348150f,
-        0.7045759f,0.6783816f,0.6552766f,0.6346085f,0.6159119f,0.5988432f,
-        0.5831416f,0.5686041f,0.5550701f,0.5424098f,0.5305173f,0.5193048f,
-        0.5086987f,0.4986367f,0.4890657f,0.4799401f,0.4712202f,0.4628714f,
-        0.4548636f,0.4471698f,0.4397664f,0.4326323f,0.4257486f,0.4190983f,
-        0.4126661f,0.4064380f
-    };
-}
+#include "dynamicdifficult.h"
+
+using namespace std;
+
+const char* CVAR_KNNAME = "sk_plr_crowbar";
+
 CWeaponDMGBase g_WeaponDMG;
+
+void CWeaponDMGBase::Tweak(float factor) {
+    this->AR = factor * this->ARD;
+    this->SG = factor * this->SGD;
+    this->MG = factor * this->MGD;
+    this->FG = factor * this->FGD;
+    this->FGE = factor * this->FGED;
+    this->LG = factor * this->LGD;
+    this->KN = factor * this->KND;
+    CVAR_SET_FLOAT(CVAR_KNNAME, this->KN);
+}
 
 void PlayerDMGTweak(){
     int iNowPlayerNum = 0;
-    for(uint i = 0; i < 33; i++){
-        CBasePlayer* pEntity = (CBasePlayer*)(CBaseEntity::Instance(g_EntityFuncs.IndexEnt(i)));
-        if(pEntity  && pEntity.IsPlayer() && pEntity.IsNetClient() && pEntity->IsConnected()){
+    for(int i = 0; i < 33; i++){
+        CBasePlayer* pEntity = UTIL_PlayerByIndex(i);
+        if(pEntity){
             iNowPlayerNum++;
         }
     }

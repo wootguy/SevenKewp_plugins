@@ -1,25 +1,50 @@
- class  weapon_sc2ar : CBaseContraWeapon{
-     private bool bInRecharg = false;
-     private float flRechargInterv = 0.02;
-     private string szGrenadeSpr = "sprites/svencontra2/bullet_gr.spr";
-     private string szGrenadeFireSound = "weapons/svencontra2/shot_gr.wav";
-     weapon_sc2ar(){
+#include "extdll.h"
+#include "util.h"
+#include "weaponbase.h"
+#include "dynamicdifficult.h"
+#include "proj_bullet.h"
+#include "CSoundEnt.h"
+#include "CGrenade.h"
+
+ItemInfo g_wepinfo_sc2ar = {
+    1,								// iSlot
+    4,								// iPosition (-1 = automatic)
+    "9mm",						// pszAmmo1
+    100,				            // iMaxAmmo1
+    "ARgrenades",					// pszAmmo2
+    6,				                // iMaxAmmo2
+    "svencontra2/weapon_sc2ar",     // pszName (path to HUD config)
+    -1,             				// iMaxClip
+    -1,								// iId (-1 = automatic)
+    CONTRA_WEP_FLAGS,	            // iFlags
+    CONTRA_WEP_WEIGHT   			// iWeight
+};
+
+class CWeaponSc2ar : public CBaseContraWeapon {
+public:
+     bool bInRecharg = false;
+     float flRechargInterv = 0.02;
+     const char* szGrenadeSpr = "sprites/svencontra2/bullet_gr.spr";
+     const char* szGrenadeFireSound = "weapons/svencontra2/shot_gr.wav";
+
+     const char* GetDeathNoticeWeapon() override { return "weapon_9mmAR"; }
+
+     CWeaponSc2ar() {
         szVModel = "models/svencontra2/v_sc2ar.mdl";
         szPModel = "models/svencontra2/wp_sc2ar.mdl";
         szWModel = "models/svencontra2/wp_sc2ar.mdl";
         szShellModel = "models/saw_shell.mdl";
         szFloatFlagModel = "sprites/svencontra2/icon_sc2ar.spr";
-        iMaxAmmo = 100;
-        iMaxAmmo2 = 6;
+        
+        wepinfo = &g_wepinfo_sc2ar;
         iDefaultAmmo = 100;
-        iSlot = 1;
-        iPosition = 20;
 
         flDeployTime = 0.8f;
         flPrimeFireTime = 0.11f;
         flSecconaryFireTime = 1.5f;
 
-        szWeaponAnimeExt = "m16";
+        //szWeaponAnimeExt = "m16";
+        szWeaponAnimeExt = "mp5";
 
         iDeployAnime = 4;
         iReloadAnime = 3;
@@ -38,20 +63,11 @@
         PRECACHE_SOUND( "weapons/svencontra2/shot_ar.wav" );
         PRECACHE_SOUND( "weapons/svencontra2/shot_gr.wav" );
         PRECACHE_SOUND( szGrenadeFireSound );
-        g_Game.PrecacheGeneric( "sound/" + szGrenadeFireSound );
-        g_Game.PrecacheGeneric( "sound/weapons/svencontra2/shot_ar.wav" );
-        g_Game.PrecacheGeneric( "sound/weapons/svencontra2/shot_gr.wav" );
 
         PRECACHE_MODEL("sprites/svencontra2/bullet_ar.spr");
         PRECACHE_MODEL("sprites/svencontra2/bullet_gr.spr");
         PRECACHE_MODEL("sprites/svencontra2/hud_sc2ar.spr");
         PRECACHE_MODEL(szGrenadeSpr);
-        g_Game.PrecacheGeneric( szGrenadeSpr );
-        g_Game.PrecacheGeneric( "sprites/svencontra2/bullet_ar.spr" );
-        g_Game.PrecacheGeneric( "sprites/svencontra2/bullet_gr.spr" );
-        g_Game.PrecacheGeneric( "sprites/svencontra2/hud_sc2ar.spr" );
-
-        g_Game.PrecacheGeneric( "sprites/svencontra2/weapon_sc2ar.txt" );
 
         CBaseContraWeapon::Precache();
      }
@@ -60,17 +76,17 @@
          CBaseContraWeapon::Holster(skiplocal);
      }
      void CreateProj(int pellet = 1) override{
-        CProjBullet* pBullet = cast<CProjBullet*>(CastToScriptClass(CreateEntity( BULLET_REGISTERNAME, NULL,  false)));
-        g_EntityFuncs.SetOrigin( pBullet.self, m_pPlayer->GetGunPosition() );
-        *pBullet->pev->owner = *m_pPlayer->edict();
-        pBullet->pev->model = "sprites/svencontra2/bullet_ar.spr";
+        CProjBullet* pBullet = (CProjBullet*)CBaseEntity::Create(BULLET_REGISTERNAME, g_vecZero, g_vecZero, false);
+        UTIL_SetOrigin( pBullet->pev, m_pPlayer->GetGunPosition() );
+        pBullet->pev->owner = m_pPlayer->edict();
+        pBullet->pev->model = MAKE_STRING("sprites/svencontra2/bullet_ar.spr");
         pBullet->pev->velocity = m_pPlayer->GetAutoaimVector( AUTOAIM_5DEGREES ) * flBulletSpeed;
-        pBullet->pev->angles = Math.VecToAngles( pBullet->pev->velocity );
+        pBullet->pev->angles = UTIL_VecToAngles( pBullet->pev->velocity );
         pBullet->pev->dmg = flDamage;
-        g_EntityFuncs.DispatchSpawn( pBullet.edict() );
+        DispatchSpawn( pBullet->edict() );
     }
     void RechargeThink(){
-        if(m_pPlayer->rgAmmo( m_iPrimaryAmmoType ) >= iMaxAmmo){
+        if(m_pPlayer->rgAmmo( m_iPrimaryAmmoType ) >= wepinfo->iMaxAmmo1){
             bInRecharg = false;
             SetThink(NULL);
             return;
@@ -81,7 +97,7 @@
     }
     void Recharge(){
         bInRecharg = true;
-        SetThink(ThinkFunction(RechargeThink));
+        SetThink(&CWeaponSc2ar::RechargeThink);
         pev->nextthink = WeaponTimeBase() + flRechargInterv;
     }
     void PrimaryAttack(){
@@ -114,9 +130,9 @@
         SendWeaponAnim(GetRandomAnime(aryFireAnime));
         m_pPlayer->SetAnimation( PLAYER_ATTACK1 );
         MAKE_VECTORS( m_pPlayer->pev->v_angle + m_pPlayer->pev->punchangle );
-        CGrenade* pGrenade = g_EntityFuncs.ShootContact( m_pPlayer->pev, 
+        CGrenade* pGrenade = CGrenade::ShootContact( m_pPlayer->pev, 
             m_pPlayer->GetGunPosition() + gpGlobals->v_forward * 12 + gpGlobals->v_right * 6,  gpGlobals->v_forward * 800 );
-        SET_MODEL(*pGrenade, szGrenadeSpr);
+        SET_MODEL(pGrenade->edict(), szGrenadeSpr);
         pGrenade->pev->rendermode = kRenderTransAdd;
         pGrenade->pev->renderamt = 255;
         pGrenade->pev->rendercolor = Vector(255, 255, 255);
@@ -125,4 +141,6 @@
         m_flNextPrimaryAttack = m_flNextSecondaryAttack = WeaponTimeBase() + flSecconaryFireTime;
         m_flTimeWeaponIdle = WeaponTimeBase() + 5;
     }
-}
+};
+
+LINK_ENTITY_TO_CLASS(weapon_sc2ar, CWeaponSc2ar)

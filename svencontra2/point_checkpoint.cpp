@@ -3,66 +3,72 @@
 * This point entity represents a point in the world where players can trigger a checkpoint
 * Dead players are revived
 */
+#include "extdll.h"
+#include "util.h"
+#include "CBasePlayer.h"
+#include "CSprite.h"
+#include "hlds_hooks.h"
+#include "gamerules.h"
 
 enum PointCheckpointFlags
 {
-    SF_CHECKPOINT_REUSABLE         = 1 << 0,    //This checkpoint is reusable
-}
+    SF_CHECKPOINT_REUSABLE = 1 << 0,    //This checkpoint is reusable
+};
 
-class point_checkpoint : ScriptBaseAnimating
-{
-    private CSprite* m_pSprite;
-    private int m_iNextPlayerToRevive = 1;
+class CCheckpoint : public CBaseAnimating {
+public:
+    CSprite* m_pSprite;
+    int m_iNextPlayerToRevive = 1;
     
     // How much time between being triggered && starting the revival of dead players
-    private float m_flDelayBeforeStart             = 3;
+    float m_flDelayBeforeStart             = 3;
     
     // Time between player revive
-    private float m_flDelayBetweenRevive         = 1;
+    float m_flDelayBetweenRevive         = 1;
     
     // How much time before this checkpoint becomes active again, if SF_CHECKPOINT_REUSABLE is set
-    private float m_flDelayBeforeReactivation     = 60;     
+    float m_flDelayBeforeReactivation     = 60;     
     
     // When we started a respawn
-    private float m_flRespawnStartTime;                    
+    float m_flRespawnStartTime;                    
     
     // Show Xenmaker-like effect when the checkpoint is spawned?
-    private bool m_fSpawnEffect                    = false; 
+    bool m_fSpawnEffect                    = false; 
     
-    bool KeyValue( const string&szKey, const string&szValue )
+    void KeyValue(KeyValueData* pkvd)
     {
-        if( szKey == "m_flDelayBeforeStart" )
+        if (FStrEq(pkvd->szKeyName, "m_flDelayBeforeStart"))
         {
-            m_flDelayBeforeStart = atof( szValue );
-            return true;
+            m_flDelayBeforeStart = atof(pkvd->szValue);
+            pkvd->fHandled = TRUE;
         }
-        else if( szKey == "m_flDelayBetweenRevive" )
+        else if (FStrEq(pkvd->szKeyName, "m_flDelayBetweenRevive"))
         {
-            m_flDelayBetweenRevive = atof( szValue );
-            return true;
+            m_flDelayBetweenRevive = atof(pkvd->szValue);
+            pkvd->fHandled = TRUE;
         }
-        else if( szKey == "m_flDelayBeforeReactivation" )
+        else if (FStrEq(pkvd->szKeyName, "m_flDelayBeforeReactivation"))
         {
-            m_flDelayBeforeReactivation = atof( szValue );
-            return true;
+            m_flDelayBeforeReactivation = atof(pkvd->szValue);
+            pkvd->fHandled = TRUE;
         }
-        else if( szKey == "minhullsize" )
+        else if (FStrEq(pkvd->szKeyName, "minhullsize"))
         {
-            g_Utility.StringToVector( pev->vuser1, szValue );
-            return true;
+            UTIL_StringToVector(pev->vuser1, pkvd->szValue);
+            pkvd->fHandled = TRUE;
         }
-        else if( szKey == "maxhullsize" )
+        else if (FStrEq(pkvd->szKeyName, "maxhullsize"))
         {
-            g_Utility.StringToVector( pev->vuser2, szValue );
-            return true;
+            UTIL_StringToVector(pev->vuser2, pkvd->szValue);
+            pkvd->fHandled = TRUE;
         }
-        else if( szKey == "m_fSpawnEffect" )
+        else if (FStrEq(pkvd->szKeyName, "m_fSpawnEffect"))
         {
-            m_fSpawnEffect = atoi( szValue ) != 0;
-            return true;
+            m_fSpawnEffect = atoi(pkvd->szValue);
+            pkvd->fHandled = TRUE;
         }
         else
-            return BaseClass.KeyValue( szKey, szValue );
+            CBaseEntity::KeyValue(pkvd);
     }
     
     // If youre gonna use this in your script, make sure you don't try
@@ -76,13 +82,13 @@ class point_checkpoint : ScriptBaseAnimating
     
     void Precache()
     {
-        BaseClass.Precache();
+        CBaseAnimating::Precache();
         
         // Allow for custom models
-        if( string( pev->model ).IsEmpty() )
+        if( !pev->model )
             PRECACHE_MODEL( "models/common/lambda.mdl" );
         else
-            PRECACHE_MODEL( pev->model );
+            PRECACHE_MODEL( STRING(pev->model) );
         
         PRECACHE_MODEL( "sprites/exit1.spr" );
         
@@ -90,10 +96,10 @@ class point_checkpoint : ScriptBaseAnimating
         PRECACHE_SOUND( "debris/beamstart8.wav" );
         PRECACHE_SOUND( "common/null.wav" );
         
-        if( string( pev->message ).IsEmpty() )
-            pev->message = "items/gunpickup2.wav";
+        if( !pev->message )
+            pev->message = MAKE_STRING("items/gunpickup2.wav");
             
-        PRECACHE_SOUND( pev->message );
+        PRECACHE_SOUND( STRING(pev->message) );
     }
     
     void Spawn()
@@ -112,40 +118,41 @@ class point_checkpoint : ScriptBaseAnimating
         pev->frags            = 0.0f;
         
         // Allow for custom models
-        if( string( pev->model ).IsEmpty() )
-            SET_MODEL( self, "models/common/lambda.mdl" );
+        if( !pev->model )
+            SET_MODEL( edict(), "models/common/lambda.mdl");
         else
-            SET_MODEL( self, pev->model );
+            SET_MODEL(edict(), STRING(pev->model) );
         
-        g_EntityFuncs.SetOrigin( self, pev->origin );
+        UTIL_SetOrigin( pev, pev->origin );
         
         // Custom hull size
         if( pev->vuser1 != g_vecZero && pev->vuser2 != g_vecZero )
-            g_EntityFuncs.SetSize( pev, pev->vuser1, pev->vuser2 );
+            UTIL_SetSize( pev, pev->vuser1, pev->vuser2 );
         else
-            g_EntityFuncs.SetSize( pev, Vector( -64, -64, -36 ), Vector( 64, 64, 36 ) );
+            UTIL_SetSize( pev, Vector( -64, -64, -36 ), Vector( 64, 64, 36 ) );
             
         SetAnim( 0 ); // set sequence to 0 aka idle
             
         // If the map supports survival mode but survival is not active yet,
         // spawn disabled checkpoint
-        if ( g_SurvivalMode.MapSupportEnabled() && !g_SurvivalMode.IsActive() )
+        //if ( pGameRules-> g_SurvivalMode.MapSupportEnabled() && !g_SurvivalMode.IsActive() )
+        if (!g_pGameRules->SurvivalModeEnabled())
             SetEnabled( false );
         else
             SetEnabled( true );
         
-        if ( IsEnabled() )
         {
             // Fire netname entity on spawn (if specified && checkpoint is enabled)
-            if ( !string( pev->netname ).IsEmpty() )
-                g_EntityFuncs.FireTargets( pev->netname, self, self, USE_TOGGLE );
+            if ( pev->netname )
+        if ( IsEnabled() )
+                FireTargets( STRING(pev->netname), this, this, USE_TOGGLE, 0.0f );
                 
             // Create Xenmaker-like effect
             if ( m_fSpawnEffect )
                 CreateSpawnEffect();
         }
         
-        SetThink( ThinkFunction( this->IdleThink ) );
+        SetThink( &CCheckpoint::IdleThink );
         pev->nextthink = gpGlobals->time + 0.1f;
     }
     
@@ -170,45 +177,46 @@ class point_checkpoint : ScriptBaseAnimating
         int iEndSpriteAlpha = 255;
 
         // create the clientside effect
-
-        MESSAGE_BEGIN msg( MSG_PVS, NetworkMessages::TE_CUSTOM, pev.origin );
-            msg.WRITE_BYTE( 2 /*TE_C_XEN_PORTAL*/ );
-            msg.WriteVector( pev.origin );
+        /*
+        MESSAGE_BEGIN( MSG_PVS, NetworkMessages::TE_CUSTOM, pev.origin );
+            WRITE_BYTE( 2 ); // TE_C_XEN_PORTAL
+            WRITE_COORD_VECTOR( pev->origin );
             // for the beams
-            msg.WRITE_BYTE( iBeamCount );
-            msg.WriteVector( vBeamColor );
-            msg.WRITE_BYTE( iBeamAlpha );
-            msg.WRITE_COORD( flBeamRadius );
+            WRITE_BYTE( iBeamCount );
+            WRITE_COORD_VECTOR( vBeamColor );
+            WRITE_BYTE( iBeamAlpha );
+            WRITE_COORD( flBeamRadius );
             // for the dlight
-            msg.WriteVector( vLightColor );
-            msg.WRITE_COORD( flLightRadius );
+            WRITE_COORD_VECTOR( vLightColor );
+            WRITE_COORD( flLightRadius );
             // for the sprites
-            msg.WriteVector( vStartSpriteColor );
-            msg.WRITE_BYTE( int( flStartSpriteScale*10 ) );
-            msg.WRITE_BYTE( int( flStartSpriteFramerate ) );
-            msg.WRITE_BYTE( iStartSpriteAlpha );
+            WRITE_COORD_VECTOR( vStartSpriteColor );
+            WRITE_BYTE( int( flStartSpriteScale*10 ) );
+            WRITE_BYTE( int( flStartSpriteFramerate ) );
+            WRITE_BYTE( iStartSpriteAlpha );
             
-            msg.WriteVector( vEndSpriteColor );
-            msg.WRITE_BYTE( int( flEndSpriteScale*10 ) );
-            msg.WRITE_BYTE( int( flEndSpriteFramerate ) );
-            msg.WRITE_BYTE( iEndSpriteAlpha );
-        msg.MESSAGE_END();
+            WRITE_COORD_VECTOR( vEndSpriteColor );
+            WRITE_BYTE( int( flEndSpriteScale*10 ) );
+            WRITE_BYTE( int( flEndSpriteFramerate ) );
+            WRITE_BYTE( iEndSpriteAlpha );
+        MESSAGE_END();
+        */
     }
     
     void Touch( CBaseEntity* pOther )
     {
-        if( !IsEnabled() || IsActivated() || !pOther.IsPlayer() )
+        if( !IsEnabled() || IsActivated() || !pOther->IsPlayer() )
             return;
         
         // Set activated
         pev->frags = 1.0f;
         
-        g_SoundSystem.EmitSound( edict(), CHAN_STATIC, "../sound/svencontra2/1up.wav", 1.0f, ATTN_NONE );
+        EMIT_SOUND( edict(), CHAN_STATIC, "../sound/svencontra2/1up.wav", 1.0f, ATTN_NONE );
 
         pev->rendermode        = kRenderTransTexture;
         pev->renderamt        = 255;
         
-        SetThink( ThinkFunction( this->FadeThink ) );
+        SetThink( &CCheckpoint::FadeThink );
         pev->nextthink = gpGlobals->time + 0.1f;
         
         // Trigger targets
@@ -254,7 +262,7 @@ class point_checkpoint : ScriptBaseAnimating
         }
         else
         {
-            SetThink( ThinkFunction( this->RespawnStartThink ) );
+            SetThink( &CCheckpoint::RespawnStartThink );
             pev->nextthink = gpGlobals->time + m_flDelayBeforeStart;
             
             m_flRespawnStartTime = gpGlobals->time;
@@ -274,14 +282,15 @@ class point_checkpoint : ScriptBaseAnimating
         
         m_iNextPlayerToRevive = 1;
         
-        *m_pSprite = g_EntityFuncs.CreateSprite( "sprites/exit1.spr", pev->origin, true, 10 );
-        m_pSprite.TurnOn();
+        m_pSprite = CSprite::SpriteCreate( "sprites/exit1.spr", pev->origin, true );
+        m_pSprite->pev->framerate = 10;
+        m_pSprite->TurnOn();
         m_pSprite->pev->rendermode = kRenderTransAdd;
         m_pSprite->pev->renderamt = 128;
     
-        g_SoundSystem.EmitSound( edict(), CHAN_STATIC, "debris/beamstart8.wav", 1.0f, ATTN_NORM );
+        EMIT_SOUND( edict(), CHAN_STATIC, "debris/beamstart8.wav", 1.0f, ATTN_NORM );
         
-        SetThink( ThinkFunction( this->RespawnThink ) );
+        SetThink( &CCheckpoint::RespawnThink );
         pev->nextthink = gpGlobals->time + 0.1f;
     }
     
@@ -292,25 +301,25 @@ class point_checkpoint : ScriptBaseAnimating
         
         for( ; m_iNextPlayerToRevive <= gpGlobals->maxClients; ++m_iNextPlayerToRevive )
         {
-            *pPlayer = g_PlayerFuncs.FindPlayerByIndex( m_iNextPlayerToRevive );
+            pPlayer = UTIL_PlayerByIndex( m_iNextPlayerToRevive );
             
             //Only respawn if the player died before this checkpoint was activated
             //Prevents exploitation
-            if( pPlayer  && !pPlayer->IsAlive() && pPlayer.m_fDeadTime < m_flRespawnStartTime )
+            if( pPlayer  && !pPlayer->IsAlive() && pPlayer->m_fDeadTime < m_flRespawnStartTime )
             {
                 //Revive player && move to this checkpoint
-                pPlayer.GetObserver().RemoveDeadBody();
-                pPlayer.SetOrigin( pev->origin );
-                pPlayer.Revive();
+                //pPlayer.GetObserver().RemoveDeadBody();
+                UTIL_SetOrigin(pPlayer->pev, pev->origin);
+                pPlayer->Revive();
                 
                 //Call player equip
                 //Only disable default giving if there are game_player_equip entities in give mode
-                CBaseEntity *pEquipEntity = NULL;
-                while ( ( *pEquipEntity = g_EntityFuncs.FindEntityByClassname( pEquipEntity, "game_player_equip" ) )   )
-                    pEquipEntity.Touch( pPlayer );
+                edict_t *pEquipEntity = NULL;
+                while ((pEquipEntity = FIND_ENTITY_BY_CLASSNAME(pEquipEntity, "game_player_equip")))
+                    DispatchTouch(pEquipEntity, pPlayer->edict());
                     
                 //Congratulations, && celebrations, YOU'RE ALIVE!
-                g_SoundSystem.EmitSound( pPlayer->edict(), CHAN_ITEM, pev->message, 1.0f, ATTN_NORM );
+                EMIT_SOUND( pPlayer->edict(), CHAN_ITEM, STRING(pev->message), 1.0f, ATTN_NORM );
                 
                 ++m_iNextPlayerToRevive; //Make sure to increment this to avoid unneeded loop
                 break;
@@ -320,7 +329,7 @@ class point_checkpoint : ScriptBaseAnimating
         //All players have been checked, close portal after 5 seconds.
         if( m_iNextPlayerToRevive > gpGlobals->maxClients )
         {
-            SetThink( ThinkFunction( this->StartKillSpriteThink ) );
+            SetThink( &CCheckpoint::StartKillSpriteThink );
             
             pev->nextthink = gpGlobals->time + 5.0f;
         }
@@ -333,21 +342,21 @@ class point_checkpoint : ScriptBaseAnimating
     
     void StartKillSpriteThink()
     {
-        g_SoundSystem.EmitSound( edict(), CHAN_STATIC, "common/null.wav", 1.0f, ATTN_NORM );
+        EMIT_SOUND( edict(), CHAN_STATIC, "common/null.wav", 1.0f, ATTN_NORM );
         
-        SetThink( ThinkFunction( this->KillSpriteThink ) );
+        SetThink( &CCheckpoint::KillSpriteThink );
         pev->nextthink = gpGlobals->time + 3.0f;
     }
     
     void CheckReusable()
     {
-        if( pev->SpawnFlagBitSet( SF_CHECKPOINT_REUSABLE ) )
+        if( pev->spawnflags & SF_CHECKPOINT_REUSABLE )
         {
-            SetThink( ThinkFunction( this->ReenableThink ) );
+            SetThink( &CCheckpoint::ReenableThink );
             pev->nextthink = gpGlobals->time + m_flDelayBeforeReactivation;
         }
         else
-            SetThink( null );
+            SetThink( NULL );
     }
     
     void KillSpriteThink()
@@ -355,7 +364,7 @@ class point_checkpoint : ScriptBaseAnimating
         if( m_pSprite  )
         {
             UTIL_Remove( m_pSprite );
-            *m_pSprite = NULL;
+            m_pSprite = NULL;
         }
         
         CheckReusable();
@@ -371,12 +380,9 @@ class point_checkpoint : ScriptBaseAnimating
         
         pev->frags = 0.0f;
         
-        SetThink( ThinkFunction( this->RespawnThink ) );
+        SetThink( &CCheckpoint::RespawnThink );
         pev->nextthink = gpGlobals->time + 0.1f;
     }
-}
+};
 
-void RegisterPointCheckPointEntity()
-{
-    g_CustomEntityFuncs.RegisterCustomEntity( "point_checkpoint", "point_checkpoint" );
-}
+LINK_ENTITY_TO_CLASS(point_checkpoint, CCheckpoint)
