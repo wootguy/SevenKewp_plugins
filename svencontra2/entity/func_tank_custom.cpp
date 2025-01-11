@@ -659,6 +659,7 @@ public:
         {
             // FireBullets needs gpGlobals->v_up, etc.
             UTIL_MakeAimVectors(pev->angles);
+            pev->angles.x *= -1;
             int bulletCount = int((gpGlobals->time - m_fireLast) * m_fireRate);
 
             if (bulletCount > 0)
@@ -706,6 +707,7 @@ public:
         {
             // FireBullets needs gpGlobals->v_up, etc.
             UTIL_MakeAimVectors(pev->angles);
+            pev->angles.x *= -1;
 
             int bulletCount = int((gpGlobals->time - m_fireLast) * m_fireRate);
             if (bulletCount > 0)
@@ -797,6 +799,8 @@ class CFuncTankLaser : public CFuncTankCustom
         {
             // TankTrace needs gpGlobals->v_up, etc.
             UTIL_MakeAimVectors(pev->angles);
+            pev->angles.x *= -1;
+
             int bulletCount = int((gpGlobals->time - m_fireLast) * m_fireRate);
             if (bulletCount > 0)
             {
@@ -843,6 +847,8 @@ public:
                 TraceResult tr;
                 // TankTrace needs gpGlobals->v_up, etc.
                 UTIL_MakeAimVectors(pev->angles);
+                pev->angles.x *= -1;
+
                 TankTrace(barrelEnd, forward, gTankSpread[m_spread], tr);
                 ExplosionCreate(tr.vecEndPos, pev->angles, edict(), pev->impulse, true);
                 CFuncTankCustom::Fire(barrelEnd, forward, pev);

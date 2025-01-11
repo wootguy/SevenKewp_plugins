@@ -28,8 +28,8 @@ public:
         pev->nextthink = gpGlobals->time + 0.05f;
     }
     void Think() {
-        if (!pOwner) {
-            SetThink(&CBaseEntity::SUB_Remove);
+        if (!pOwner || pOwner->pev->movetype == MOVETYPE_FOLLOW) {
+            UTIL_Remove(this);
             pev->nextthink = gpGlobals->time;
             return;
         }

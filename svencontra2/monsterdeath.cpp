@@ -8,7 +8,7 @@ using namespace std;
 
 vector<EHANDLE> aryMonsterList = {};
 //spr路径
-const string szMonsterDeathSprPath = "sprites/deadspray_a.spr";
+const string szMonsterDeathSprPath = "sprites/svencontra2/deadspray_a.spr";
 //默认音效路径
 const string szMosnterDeathSoundPath = "svencontra2/npcdead_a.wav";
 //播放spr并删除延迟
