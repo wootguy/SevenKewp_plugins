@@ -1,17 +1,23 @@
+#include "proj_bullet.h"
+#include "CBaseMonster.h"
+#include "monsters.h"
+#include "explode.h"
+#include "weapons.h"
+
 namespace ContraGunWagon
 {
 const int SENTY_TURNRATE = 45;//每0.1秒选择角度
 const int SENTY_MAXWAIT = 15;
 const float SENTY_FIRERATE = 0.2f;
 const float SENTY_CHILDRANGE = 2048;
-const string SENTRY_CHILDMODEL = "models/turret.mdl";
-const string SENTRY_CHILFFIRESND = "sc_contrahdl/hdl_shot_2.wav";
-const string SENTRY_SHELLMODEL = "models/saw_shell.mdl";
+const char* SENTRY_CHILDMODEL = "models/turret.mdl";
+const char* SENTRY_CHILFFIRESND = "sc_contrahdl/hdl_shot_2.wav";
+const char* SENTRY_SHELLMODEL = "models/saw_shell.mdl";
 const int SENTRY_HEALTH = 150;
 const int SENTRY_DMG = 10;
 const float SENTRY_BULLETSPEED = 512;
 const float SENTRY_FIREANGLE = 0.996; //cos0.1°
-const string SENTRY_CLASSNAME = "monster_gunwagon";
+const char* SENTRY_CLASSNAME = "monster_gunwagon";
 
 enum TURRET_ANIM
 {
@@ -23,8 +29,8 @@ enum TURRET_ANIM
 	SENTY_ANIM_DIE,
 };
 
-class CCustomSentry : ScriptBaseMonsterEntity
-{
+class CCustomSentry : public CBaseMonster {
+public:
     int iShell;
 	int iMinPitch =  -60;
 
@@ -39,7 +45,7 @@ class CCustomSentry : ScriptBaseMonsterEntity
 	Vector vecCurAngles;
 	Vector vecGoalAngles;
 	
-	void Spawn()
+	void Spawn() override
 	{
 		Precache();
         MonsterInit();
@@ -59,28 +65,28 @@ class CCustomSentry : ScriptBaseMonsterEntity
 		m_flFieldOfView = VIEW_FIELD_FULL;
         m_flDistLook = SENTY_CHILDRANGE;
 		
-		SET_MODEL( self, SENTRY_CHILDMODEL );
+		SET_MODEL( edict(), SENTRY_CHILDMODEL);
 		pev->health = SENTRY_HEALTH;
 		pev->max_health = pev->health;
 		m_HackedGunPos = Vector(0,0,48);
 		pev->view_ofs.z = 48;
 
-        if(m_FormattedName == "")
-            m_FormattedName = "Sentry";
+        if(!m_displayName)
+			m_displayName = MAKE_STRING("Sentry");
             
-		g_EntityFuncs.SetSize( pev, Vector(-16, -16, 0), Vector(16, 16, 32) );
+		UTIL_SetSize( pev, Vector(-16, -16, 0), Vector(16, 16, 32) );
 
         vecGoalAngles.x = 0;
 
 		flLastSight = gpGlobals->time + SENTY_MAXWAIT;
 
-		SetThink( ThinkFunction( this->AutoSearchThink ) );
+		SetThink( &CCustomSentry::AutoSearchThink );
 		pev->nextthink = gpGlobals->time + 1; 
 	}
 
-    int	Classify()
+    int	Classify() override
 	{
-		return GetClassification( CLASS_ALIEN_MONSTER );
+		return CBaseMonster::Classify( CLASS_ALIEN_MONSTER );
 	}
 
     float TrimAngle(float vecTrim)
@@ -92,16 +98,13 @@ class CCustomSentry : ScriptBaseMonsterEntity
         return vecTrim;
     }
 
-	void Precache()
+	void Precache() override
 	{  
         PRECACHE_MODEL( SENTRY_CHILDMODEL );
-        g_Game.PrecacheGeneric( SENTRY_CHILDMODEL );
 
         PRECACHE_SOUND( SENTRY_CHILFFIRESND );
-        g_Game.PrecacheGeneric( SENTRY_CHILFFIRESND );
 
         iShell = PRECACHE_MODEL( SENTRY_SHELLMODEL );
-        g_Game.PrecacheGeneric( SENTRY_SHELLMODEL );
 	}
 
     int MoveTurret()
@@ -161,7 +164,7 @@ class CCustomSentry : ScriptBaseMonsterEntity
 			if( flDist < (0.05 * SENTY_TURNRATE) )
 				vecCurAngles.y = vecGoalAngles.y;
 
-				SetBoneController( 0, vecCurAngles.y - pev.angles.y );
+				SetBoneController( 0, vecCurAngles.y - pev->angles.y );
 			state = 1;
 		}
 
@@ -175,38 +178,38 @@ class CCustomSentry : ScriptBaseMonsterEntity
     {
         m_hEnemy = NULL;
 		flLastSight = gpGlobals->time + SENTY_MAXWAIT;
-		SetThink( ThinkFunction( this->SearchThink ) );
+		SetThink( &CCustomSentry::SearchThink );
     }
 
-    int TakeDamage( entvars_t* pevInflictor, entvars_t* pevAttacker, float flDamage, int bitsDamageType)
+    int TakeDamage( entvars_t* pevInflictor, entvars_t* pevAttacker, float flDamage, int bitsDamageType) override
 	{	
 		if(pevAttacker  == NULL )
 			return 0;
 
-        g_Utility.Ricochet(Center(), 1);
-		return BaseClass.TakeDamage(pevInflictor, pevAttacker, flDamage, bitsDamageType);
+        UTIL_Ricochet(Center(), 1);
+		return CBaseMonster::TakeDamage(pevInflictor, pevAttacker, flDamage, bitsDamageType);
 	}
 
-    void Killed(entvars_t*pevAtttacker, int iGibbed)
+    void Killed(entvars_t*pevAtttacker, int iGibbed) override
     {
         pev->solid = SOLID_NOT;
 		pev->takedamage = DAMAGE_NO;
 
-        SetThink( ThinkFunction( KillThink ) );
+        SetThink( &CCustomSentry::KillThink );
         pev->nextthink = gpGlobals->time;
     }
 
     void KillThink()
 	{
-        SetThink( ThinkFunction( Explosion ) );
+        SetThink( &CCustomSentry::Explosion );
         SetTurretAnim( SENTY_ANIM_DIE );
         pev->nextthink = gpGlobals->time + 3;
     }
 
     void Explosion()
     {
-        g_EntityFuncs.CreateExplosion(Center(), pev->angles, edict(), 25, true);
-        UTIL_Remove(self);
+        ExplosionCreate(Center(), pev->angles, edict(), 25, true);
+        UTIL_Remove(this);
     }
     
 	void ActiveThink()
@@ -238,12 +241,12 @@ class CCustomSentry : ScriptBaseMonsterEntity
 		}
 
 		Vector vecMid = pev->origin + pev->view_ofs;
-		Vector vecMidEnemy = m_hEnemy.GetEntity().BodyTarget( vecMid );
+		Vector vecMidEnemy = m_hEnemy->BodyTarget( vecMid );
 
-		bIsEnemyVisible = m_hEnemy.GetEntity().FVisible( self, true );
+		bIsEnemyVisible = m_hEnemy->FVisible( this, true );
 		vecDirToEnemy = vecMidEnemy - vecMid;
 		float flDistToEnemy = vecDirToEnemy.Length();
-		Vector vec = Math.VecToAngles( vecMidEnemy - vecMid );
+		Vector vec = UTIL_VecToAngles( vecMidEnemy - vecMid );
 
 		if( !bIsEnemyVisible || flDistToEnemy > SENTY_CHILDRANGE )
 		{
@@ -262,7 +265,8 @@ class CCustomSentry : ScriptBaseMonsterEntity
 		else
 			vecLastSight = vecMidEnemy;
 
-		Math.MakeAimVectors( vecCurAngles );
+		UTIL_MakeAimVectors( vecCurAngles );
+		vecCurAngles.x *= -1;
 
 		Vector vecLOS = vecDirToEnemy;
 		vecLOS = vecLOS.Normalize();
@@ -311,7 +315,7 @@ class CCustomSentry : ScriptBaseMonsterEntity
 		{
 			bIsActived = true;
 			SetTurretAnim( SENTY_ANIM_DEPLOY );
-			SUB_UseTargets( self, USE_ON, 0 );
+			SUB_UseTargets( this, USE_ON, 0 );
         }
 
 		if( m_fSequenceFinished )
@@ -320,7 +324,7 @@ class CCustomSentry : ScriptBaseMonsterEntity
 
 			SetTurretAnim( SENTY_ANIM_SPIN );
 			pev->framerate = 0;
-			SetThink( ThinkFunction( SearchThink ) );
+			SetThink( &CCustomSentry::SearchThink );
 		}
 		flLastSight = gpGlobals->time + SENTY_MAXWAIT;
 	}
@@ -357,28 +361,32 @@ class CCustomSentry : ScriptBaseMonsterEntity
         float iNearest = fRadius;
 		do
 		{
-			*ent = g_EntityFuncs.FindEntityInSphere( ent, pev->origin, fRadius, "player", "classname" ); 
+			ent = UTIL_FindEntityInSphere( ent, pev->origin, fRadius ); 
+
 			if ( ent  == NULL  || !ent->IsAlive() )
+				continue;
+
+			if (!FClassnameIs(ent->pev, "player"))
 				continue;
 	
 			if ( ent->entindex() == entindex() )
 				continue;
 				
-			if ( ent->edict() is pev->owner )
+			if ( ent->edict() == pev->owner )
 				continue;
 				
 			int rel = IRelationship(ent);
 			if ( rel == R_AL || rel == R_NO )
 				continue;
 
-            if(!ent.FVisible(self, true))
+            if(!ent->FVisible(this, true))
                 continue;
 
 			float iDist = ( ent->pev->origin - pev->origin ).Length();
 			if ( iDist < iNearest )
 			{
 				iNearest = iDist;
-				*enemy = ent;
+				enemy = ent;
 			}
 		}
 		while ( ent  );
@@ -390,8 +398,8 @@ class CCustomSentry : ScriptBaseMonsterEntity
 		if( gpGlobals->time >= flShootTime )
 		{
 			MAKE_VECTORS( vecCurAngles );
-            CProjBullet* pBullet = ShootABullet(self, vecSrc, vecDirToEnemy * SENTRY_BULLETSPEED);
-            pBullet.pev->dmg = SENTRY_DMG;
+            CProjBullet* pBullet = ShootABullet(this, vecSrc, vecDirToEnemy * SENTRY_BULLETSPEED);
+            pBullet->pev->dmg = SENTRY_DMG;
 
             EMIT_SOUND_DYN( edict(), CHAN_WEAPON, SENTRY_CHILFFIRESND, 1, ATTN_NORM, 0, 94 + RANDOM_LONG( 0, 0xF ) );
 
@@ -433,7 +441,7 @@ class CCustomSentry : ScriptBaseMonsterEntity
 		if( m_hEnemy.GetEntity()  )
 		{
 			flLastSight = 0;
-			SetThink( ThinkFunction( this->ActiveThink ) );
+			SetThink( &CCustomSentry::ActiveThink );
 		}
 		else
 		{
@@ -452,14 +460,11 @@ class CCustomSentry : ScriptBaseMonsterEntity
 		CheckValidEnemy();
 
 		if( m_hEnemy.GetEntity()  )
-			SetThink( ThinkFunction( this->Deploy ) );
+			SetThink( &CCustomSentry::Deploy );
 
         pev->nextthink = gpGlobals->time + 0.3;
 	}
+};
 }
-void Register()
-{
-	g_CustomEntityFuncs.RegisterCustomEntity( "ContraGunWagon::CCustomSentry", SENTRY_CLASSNAME );
-	g_Game.PrecacheOther(SENTRY_CLASSNAME);
-}
-}
+
+LINK_ENTITY_TO_CLASS(monster_gunwagon, ContraGunWagon::CCustomSentry)

@@ -1,14 +1,18 @@
+#include "proj_bullet.h"
+#include "CBaseMonster.h"
+#include "monsters.h"
+
 namespace ContraBoyz
 {
 // 怪物Event
 const int BOYZ_RANGEATTACK_EVENT = 3;
 //怪物属性
-const string BOYZ_CLASSNAME = "monster_contra_boyz";
-const string BOYZ_DISPLAY_NAME = "Orc Boyz";
-const string BOYZ_MODEL = "models/barney.mdl";
-const string BOYZ_ATTACKSOUND = "sc_contrahdl/hdl_shot_2.wav";//HelloTimber changed, give him a sound when fire.
-const string BOYZ_DEATHSOUND = "common/null.wav";//HelloTimber changed, no sound when dead.
-const string BOYZ_ALERTSOUND = "AoMDC/monsters/ghost/slv_die.wav";//HelloTimber changed, no sound when see player.
+const char* BOYZ_CLASSNAME = "monster_contra_boyz";
+const char* BOYZ_DISPLAY_NAME = "Orc Boyz";
+const char* BOYZ_MODEL = "models/barney.mdl";
+const char* BOYZ_ATTACKSOUND = "sc_contrahdl/hdl_shot_2.wav";//HelloTimber changed, give him a sound when fire.
+const char* BOYZ_DEATHSOUND = "common/null.wav";//HelloTimber changed, no sound when dead.
+const char* BOYZ_ALERTSOUND = "AoMDC/monsters/ghost/slv_die.wav";//HelloTimber changed, no sound when see player.
 const float BOYZ_BULLETVELOCITY = 512;
 const float BOYZ_EYESIGHT_RANGE = 2048;
 const float BOYZ_ATTACK_FREQUENCE = 0.3;
@@ -19,14 +23,14 @@ const float BOYZ_MOD_HEALTH_SURVIVAL = 30.0;
 const float BOYZ_MOD_MOVESPEED_SURVIVAL = 400.0;
 const int BOYZ_MOD_DMG_INIT_SURVIVAL = 10;
 
-class CMonsterBoyz : ScriptBaseMonsterEntity
-{
-	private float m_flNextAttack = 0;
-	private bool bSurvivalEnabled = g_engfuncs.pfnCVarGetFloat("mp_survival_starton") == 1 && g_engfuncs.pfnCVarGetFloat("mp_survival_supported") == 1;
+class CMonsterBoyz : public CBaseMonster {
+public:
+	float m_flNextAttack = 0;
+	bool bSurvivalEnabled = g_engfuncs.pfnCVarGetFloat("mp_survival_starton") == 1 && g_engfuncs.pfnCVarGetFloat("mp_survival_supported") == 1;
 	
-	void Precache()
+	void Precache() override
 	{
-		BaseClass.Precache();
+		CBaseMonster::Precache();
 
 		PRECACHE_MODEL(BOYZ_MODEL);
 
@@ -35,14 +39,13 @@ class CMonsterBoyz : ScriptBaseMonsterEntity
 		PRECACHE_SOUND(BOYZ_ALERTSOUND);
 	}
 	
-	void Spawn()
+	void Spawn() override
 	{
 		Precache();
 
-		if( !SetupModel() )
-			SET_MODEL( self, BOYZ_MODEL );
+		SET_MODEL( edict(), BOYZ_MODEL);
 			
-		g_EntityFuncs.SetSize( pev, VEC_HUMAN_HULL_MIN, VEC_HUMAN_HULL_MAX );
+		UTIL_SetSize( pev, VEC_HUMAN_HULL_MIN, VEC_HUMAN_HULL_MAX );
 	
 		pev->health = bSurvivalEnabled ? BOYZ_MOD_HEALTH_SURVIVAL : BOYZ_MOD_HEALTH;
 		pev->solid = SOLID_SLIDEBOX;
@@ -53,80 +56,80 @@ class CMonsterBoyz : ScriptBaseMonsterEntity
 		m_flFieldOfView = 0.8;
 		m_MonsterState = MONSTERSTATE_NONE;
 		m_afCapability = bits_CAP_DOORS_GROUP;
-		m_FormattedName = BOYZ_DISPLAY_NAME;
+		m_displayName = MAKE_STRING(BOYZ_DISPLAY_NAME);
 
 		MonsterInit();
 	}
 
-	int	Classify()
+	int	Classify() override
 	{
-		return GetClassification( CLASS_ALIEN_MONSTER );
+		return CBaseMonster::Classify( CLASS_ALIEN_MONSTER );
 	}
 	
-	void SetYawSpeed()
+	void SetYawSpeed() override
 	{
 		pev->yaw_speed = bSurvivalEnabled ? BOYZ_MOD_MOVESPEED_SURVIVAL : BOYZ_MOD_MOVESPEED;
 	}
 	
-	void DeathSound()
+	void DeathSound() override
 	{
 		EMIT_SOUND_DYN( edict(), CHAN_VOICE, BOYZ_DEATHSOUND, 1, ATTN_NORM, 0, PITCH_NORM );
 	}
 	
 	void Killed(entvars_t* pevAttacker, int iGib)
 	{
-		BaseClass.Killed(pevAttacker, iGib);
+		CBaseMonster::Killed(pevAttacker, iGib);
 	}
 	
-	void AlertSound()
+	void AlertSound() override
 	{	
 		EMIT_SOUND_DYN( edict(), CHAN_VOICE, BOYZ_ALERTSOUND, 1, ATTN_NORM, 0, PITCH_NORM );
 	
 	}
 	
-	int TakeDamage( entvars_t* pevInflictor, entvars_t* pevAttacker, float flDamage, int bitsDamageType)
+	int TakeDamage( entvars_t* pevInflictor, entvars_t* pevAttacker, float flDamage, int bitsDamageType) override
 	{	
 		if(pevAttacker  == NULL )
 			return 0;
 
 		CBaseEntity* pAttacker = CBaseEntity::Instance( pevAttacker );
-		if(CheckAttacker( pAttacker ))
+		if(IRelationship( pAttacker ) < R_NO)
 			return 0;
 
-		return BaseClass.TakeDamage(pevInflictor, pevAttacker, flDamage, bitsDamageType);
+		return CBaseMonster::TakeDamage(pevInflictor, pevAttacker, flDamage, bitsDamageType);
 	}
 	
 	CBaseEntity* GetEnemy()
 	{
-		if(m_hEnemy.IsValid())
-			return m_hEnemy.GetEntity().MyMonsterPointer();
+		if(m_hEnemy)
+			return m_hEnemy->MyMonsterPointer();
 		return NULL;
 	}	
 	
-	bool CheckMeleeAttack1( float flDot, float flDist )
+	BOOL CheckMeleeAttack1( float flDot, float flDist ) override
 	{
-		return false;
+		return FALSE;
 	}
-	bool CheckMeleeAttack2( float flDot, float flDist )
+	BOOL CheckMeleeAttack2( float flDot, float flDist ) override
 	{
-		return false;
+		return FALSE;
 	}
 	
-	bool CheckRangeAttack1(float flDot, float flDist)
+	BOOL CheckRangeAttack1(float flDot, float flDist) override
 	{
 		if ( flDist <= BOYZ_EYESIGHT_RANGE && flDot >= 0.5 && NoFriendlyFire())
 		{
-			if(!m_hEnemy.IsValid())
+			if(!m_hEnemy)
 				return false;
-			CBaseMonster* pEnemy = m_hEnemy.GetEntity().MyMonsterPointer();
+			CBaseMonster* pEnemy = m_hEnemy->MyMonsterPointer();
 			if (pEnemy  == NULL )
 				return false;
 			Vector vecSrc = pev->origin;
-			vecSrc.z += pev.size.z * 0.5;;
-			Vector vecEnd = (pEnemy.BodyTarget( vecSrc ) - pEnemy.Center()) + m_vecEnemyLKP;
+			vecSrc.z += pev->size.z * 0.5;;
+			Vector vecEnd = (pEnemy->BodyTarget( vecSrc ) - pEnemy->Center()) + m_vecEnemyLKP;
 			TraceResult tr;
-			TRACE_LINE( vecSrc, vecEnd, dont_ignore_monsters, edict(), tr );
-			if ( tr.flFraction == 1.0 || tr.pHit is pEnemy->edict() )
+			TRACE_LINE( vecSrc, vecEnd, dont_ignore_monsters, edict(), &tr );
+			if ( tr.flFraction == 1.0 || tr.pHit == pEnemy->edict() )
 				return true;
 		}
 		return false;
@@ -137,21 +140,21 @@ class CMonsterBoyz : ScriptBaseMonsterEntity
 	{
 		MAKE_VECTORS( pev->angles );
 		Vector vecSrc = pev->origin;
-		vecSrc.z += pev.size.z * 0.5;;
+		vecSrc.z += pev->size.z * 0.5;;
 		Vector vecAim = ShootAtEnemy( vecSrc );
-		Vector angDir = Math.VecToAngles( vecAim );
+		Vector angDir = UTIL_VecToAngles( vecAim );
 		SetBlending( 0, angDir.x );
 
 		EMIT_SOUND_DYN( edict(), CHAN_WEAPON, BOYZ_ATTACKSOUND, 1, ATTN_NORM, 0, PITCH_NORM );
-		CProjBullet* pBullet = ShootABullet(self, vecSrc, vecAim * BOYZ_BULLETVELOCITY);
-		pBullet.pev->dmg = bSurvivalEnabled ? BOYZ_MOD_DMG_INIT_SURVIVAL : BOYZ_MOD_DMG_INIT;
+		CProjBullet* pBullet = ShootABullet(this, vecSrc, vecAim * BOYZ_BULLETVELOCITY);
+		pBullet->pev->dmg = bSurvivalEnabled ? BOYZ_MOD_DMG_INIT_SURVIVAL : BOYZ_MOD_DMG_INIT;
 	}
 
-	void HandleAnimEvent(MonsterEvent* pEvent)
+	void HandleAnimEvent(MonsterEvent_t* pEvent)
 	{
 		if(gpGlobals->time < m_flNextAttack)
 			return;
-		switch(pEvent.event)
+		switch(pEvent->event)
 		{
 			case BOYZ_RANGEATTACK_EVENT:
 			{
@@ -164,13 +167,10 @@ class CMonsterBoyz : ScriptBaseMonsterEntity
 				}
 				break;
 			}
-			default: BaseClass.HandleAnimEvent(pEvent);break;
+			default: CBaseMonster::HandleAnimEvent(pEvent);break;
 		}
 	}
+};
 }
-void Register()
-{
-	g_CustomEntityFuncs.RegisterCustomEntity( "ContraBoyz::CMonsterBoyz", BOYZ_CLASSNAME );
-	g_Game.PrecacheOther(BOYZ_CLASSNAME);
-}
-}
+
+LINK_ENTITY_TO_CLASS(monster_contra_boyz, ContraBoyz::CMonsterBoyz)

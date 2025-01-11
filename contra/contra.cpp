@@ -1,34 +1,32 @@
-#include "proj/proj_bullet"
-#include "weapon/weapon_contra"
-#include "weapon/ammobase"
-#include "weapon/ammomethod"
-#include "monster/monster_boyz"
-#include "monster/monster_gunwagon"
+#include "proj_bullet.h"
+#include "weapon_contra.h"
+#include "ammobase.h"
 
-#include "point_checkpoint"
+HLCOOP_PLUGIN_HOOKS g_hooks;
 
-void PluginInit()
+namespace ContraBoyz { extern const char* BOYZ_CLASSNAME; }
+namespace ContraGunWagon { extern const char* SENTRY_CLASSNAME; }
+
+HOOK_RETURN_DATA MapInit()
 {
-    g_Module.ScriptInfo.SetAuthor( "DrAbc" );
-    g_Module.ScriptInfo.SetContactInfo( "Not yet" );
+    RegisteAmmo("N", 0.35f, ShootNormalBullet);
+    RegisteAmmo("M", 0.15f, ShootMBullet);
+    RegisteAmmo("S", 0.5f, ShootSBullet);
+    RegisteAmmo("L", 0.5f, ShootLBullet);
+
+    g_contra_wep_info = UTIL_RegisterWeapon( "weapon_contra" );
+
+    UTIL_PrecacheOther(ContraBoyz::BOYZ_CLASSNAME);
+    UTIL_PrecacheOther(ContraGunWagon::SENTRY_CLASSNAME);
+
+    return HOOK_CONTINUE;
 }
 
-void MapInit()
-{
-    RegisteAmmo("N", 0.35f, *ShootNormalBullet);
-    RegisteAmmo("M", 0.15f, *ShootMBullet);
-    RegisteAmmo("S", 0.5f, *ShootSBullet);
-    RegisteAmmo("L", 0.5f, *ShootLBullet);
+extern "C" int DLLEXPORT PluginInit() {
+    g_hooks.pfnMapInit = MapInit;
 
-    for(uint i = 0; i < aryAmmoType.length(); i++)
-    {
-        g_CustomEntityFuncs.RegisterCustomEntity( aryAmmoType[i].Name + "Ammo", aryAmmoType[i].Name + "Ammo" );
-    }
+    //g_Module.ScriptInfo.SetAuthor("DrAbc");
+    //g_Module.ScriptInfo.SetContactInfo("Not yet");
 
-    g_CustomEntityFuncs.RegisterCustomEntity( "CProjBullet", BULLET_REGISTERNAME );
-    g_CustomEntityFuncs.RegisterCustomEntity( "CContraWeapon", "weapon_contra" );
-	UTIL_RegisterWeapon( "weapon_contra", "hl_weapons", "weapon_contra" );
-
-    ContraBoyz::Register();
-    ContraGunWagon::Register();
+    return RegisterPlugin(&g_hooks);
 }

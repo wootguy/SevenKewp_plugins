@@ -4,11 +4,11 @@ add_library(${PROJECT_NAME} SHARED
 	monster/monster_boyz.cpp
 	monster/monster_gunwagon.cpp
 	
-	proj/proj_bullet.cpp
+	proj/proj_bullet.h proj/proj_bullet.cpp
 	
-	weapon/ammobase.cpp
+	weapon/ammobase.h weapon/ammobase.cpp
 	weapon/ammomethod.cpp
-	weapon/weapon_contra.cpp
+	weapon/weapon_contra.h weapon/weapon_contra.cpp
 	
 	contra.cpp
 )

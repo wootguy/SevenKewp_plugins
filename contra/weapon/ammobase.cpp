@@ -1,130 +1,126 @@
-Vector AMMO_SACCURANCY = VECTOR_CONE_20DEGREES;
+#include "extdll.h"
+#include "util.h"
+#include "CBasePlayer.h"
+#include <string>
+#include <vector>
+#include "ammobase.h"
+#include "weapon_contra.h"
 
-vector<CAmmoType*> aryAmmoType = {};
-funcdef void FireMethod (CBaseEntity* pOwner, Vector vecOrigin, Vector vecVelocity);
-class CAmmoType
-{
-    string Name;
-    float FireInter;
-    string FireSnd;
-    Vector Accurency;
-    FireMethod* Method;
+using namespace std;
 
-    CAmmoType(string _Name, float _FireInter, FireMethod* _Method)
-    {
-        Name = _Name;
-        FireInter = _FireInter;
-        *Method = *_Method;
-    }
-}
+std::vector<CAmmoType> aryAmmoType;
 
 CAmmoType* GetAmmo(string Name)
 {
-    for(uint i = 0; i < aryAmmoType.length(); i++)
+    for(unsigned int i = 0; i < aryAmmoType.size(); i++)
     {
         if(aryAmmoType[i].Name == Name)
-            return aryAmmoType[i];
+            return &aryAmmoType[i];
     }
     return NULL;
 }
 
-void RegisteAmmo (string _Name, float _FireInter, FireMethod* _Method)
+void RegisteAmmo (string _Name, float _FireInter, FireMethod _Method)
 {
     aryAmmoType.push_back(CAmmoType(_Name, _FireInter, _Method));
 }
 
-class NAmmo : CBaseAmmoEntity
+class CBaseAmmoEntity : public CBaseAnimating
 {
-    NAmmo()
+public:
+    const char* szMdlPath = "sprites/contra/r.spr";
+    const char* szPickUpPath = "items/gunpickup2.wav";
+    float flSize = 6;
+    CAmmoType* m_iType;
+
+    void Spawn()
     {
-        szMdlPath = "sprites/contra/n.spr";
-        *m_iType = GetAmmo("N");
-    }
-}
+        Precache();
+        if (!pev->model)
+            SET_MODEL(edict(), szMdlPath);
+        else
+            SET_MODEL(edict(), STRING(pev->model));
 
-class MAmmo : CBaseAmmoEntity
-{
-    MAmmo()
-    {
-        szMdlPath = "sprites/contra/m.spr";
-        *m_iType = GetAmmo("M");
-    }
-}
+        pev->movetype = MOVETYPE_NONE;
+        pev->solid = SOLID_TRIGGER;
 
-class SAmmo : CBaseAmmoEntity
-{
-    SAmmo()
-    {
-        szMdlPath = "sprites/contra/s.spr";
-        *m_iType = GetAmmo("S");
-    }
-}
-
-class LAmmo : CBaseAmmoEntity
-{
-    LAmmo()
-    {
-        szMdlPath = "sprites/contra/l.spr";
-        *m_iType = GetAmmo("L");
-    }
-}
-
-class CBaseAmmoEntity : ScriptBaseAnimating
-{
-    protected string szMdlPath = "sprites/contra/r.spr";
-    protected string szPickUpPath = "items/gunpickup2.wav";
-    protected float flSize = 6;
-	protected CAmmoType* m_iType;
-	void Spawn()
-	{ 
-		Precache();
-		if( !SetupModel() )
-			SET_MODEL( self, szMdlPath );
-		else
-			SET_MODEL( self, pev->model );
-
-        pev->movetype 		= MOVETYPE_NONE;
-		pev->solid 			= SOLID_TRIGGER;
-
-		g_EntityFuncs.SetSize(pev, Vector( -flSize, -flSize, -flSize ), Vector( flSize, flSize, flSize ));
+        UTIL_SetSize(pev, Vector(-flSize, -flSize, -flSize), Vector(flSize, flSize, flSize));
         //SetTouch(TouchFunction(this->Touch));
 
-        BaseClass.Spawn();
-	}
-	
-	void Precache()
-	{
-		BaseClass.Precache();
+        CBaseAnimating::Spawn();
+    }
 
-        string szTemp = string( pev->model ).IsEmpty() ? szMdlPath : string(pev->model);
-        PRECACHE_MODEL( szTemp );
-		PRECACHE_SOUND(szPickUpPath);
+    void Precache()
+    {
+        CBaseAnimating::Precache();
 
-        g_Game.PrecacheGeneric( szTemp );
-        g_Game.PrecacheGeneric( "sound/" + szPickUpPath );
-	}
+        const char* szTemp = !pev->model ? szMdlPath : STRING(pev->model);
+        PRECACHE_MODEL(szTemp);
+        PRECACHE_SOUND(szPickUpPath);
+    }
 
-    void SetAnim( int animIndex ) 
-	{
-		pev->sequence = animIndex;
-		pev->frame = 0;
-		ResetSequenceInfo();
-	}
-	
+    void SetAnim(int animIndex)
+    {
+        pev->sequence = animIndex;
+        pev->frame = 0;
+        ResetSequenceInfo();
+    }
+
     void Touch(CBaseEntity* pOther)
     {
-        if(pOther->IsAlive() && pOther.IsPlayer() && pOther.IsNetClient())
+        if (pOther->IsAlive() && pOther->IsPlayer() && pOther->IsNetClient())
         {
             CBasePlayer* pPlayer = (CBasePlayer*)(pOther);
-            if(pPlayer  && pPlayer->IsConnected())
+            if (pPlayer && IsValidPlayer(pPlayer->edict()))
             {
-                CContraWeapon* pWeapon = cast<CContraWeapon*>(CastToScriptClass(pPlayer.HasNamedPlayerItem("weapon_contra")));
-                if(pWeapon  == NULL )
+                CContraWeapon* pWeapon = (CContraWeapon*)pPlayer->GetNamedPlayerItem("weapon_contra");
+                if (pWeapon == NULL)
                     return;
 
-                *pWeapon.m_iAmmoType = *m_iType;
-                UTIL_Remove(self);
+                pWeapon->m_iAmmoType = m_iType;
+                UTIL_Remove(this);
             }
         }
     }
-}
+};
+
+class CNAmmo : public CBaseAmmoEntity {
+public:
+    CNAmmo()
+    {
+        szMdlPath = "sprites/contra/n.spr";
+        m_iType = GetAmmo("N");
+    }
+};
+
+class CMAmmo : public CBaseAmmoEntity {
+public:
+    CMAmmo()
+    {
+        szMdlPath = "sprites/contra/m.spr";
+        m_iType = GetAmmo("M");
+    }
+};
+
+class CSAmmo : public CBaseAmmoEntity {
+public:
+    CSAmmo()
+    {
+        szMdlPath = "sprites/contra/s.spr";
+        m_iType = GetAmmo("S");
+    }
+};
+
+class CLAmmo : public CBaseAmmoEntity {
+public:
+    CLAmmo()
+    {
+        szMdlPath = "sprites/contra/l.spr";
+        m_iType = GetAmmo("L");
+    }
+};
+
+LINK_ENTITY_TO_CLASS(NAmmo, CNAmmo)
+LINK_ENTITY_TO_CLASS(MAmmo, CMAmmo)
+LINK_ENTITY_TO_CLASS(SAmmo, CSAmmo)
+LINK_ENTITY_TO_CLASS(LAmmo, CLAmmo)
