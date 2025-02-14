@@ -1,4 +1,5 @@
 #include "extdll.h"
+#include "util.h"
 #include "PluginManager.h"
 
 void ControllerMapInit();
