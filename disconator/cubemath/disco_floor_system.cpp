@@ -1,5 +1,13 @@
+#include "extdll.h"
+#include "util.h"
+#include "CBasePlayer.h"
+#include "hlds_hooks.h"
 
-class disco_floor_system : ScriptBaseEntity {
+using namespace std;
+
+extern float g_musicBeginTime;
+
+class CDiscoFloorSystem : public CBaseEntity {
 	
 	vector<vector<CBaseEntity*>> disco_floor;
 	vector<vector<CBaseEntity*>> disco_hurt;
@@ -14,18 +22,10 @@ class disco_floor_system : ScriptBaseEntity {
 	float phaseBeginTime;
 	int soundStep;
 	
-	bool KeyValue( const string&szKey, const string&szValue ) {
-		return BaseClass.KeyValue( szKey, szValue );
-	}
-	
-	void Precache() {
-		BaseClass.Precache();
-	}
-	
 	void Spawn() {
 		Precache();
 		
-		SetThink( ThinkFunction( this->PrepareThink ) );
+		SetThink( &CDiscoFloorSystem::PrepareThink );
 		pev->nextthink = gpGlobals->time + 1.0f;
 		
 		//Randomness of Tiles:
@@ -51,64 +51,64 @@ class disco_floor_system : ScriptBaseEntity {
 		}
 		
 		for( int i = 0; i < gpGlobals->maxEntities; ++i ) {
-			CBaseEntity* pEntity = CBaseEntity::Instance( i );
-			if( pEntity ){
-				string targetname = pEntity->pev->targetname;
+			CBaseEntity* pEntity = CBaseEntity::Instance( INDEXENT(i) );
+			if(pEntity){
+				string targetname = STRING(pEntity->pev->targetname);
 				
-				if( targetname.Find("disco_floor_") == 0 ) {
+				if( targetname.find("disco_floor_") == 0 ) {
 					int x = targetname[12]-48;
 					int y = 0;
 					if(targetname[13] > 57){
 						y = targetname[14]-48;
-						if(targetname.Length() > 15) {
+						if(targetname.length() > 15) {
 							y = y*10 + targetname[15]-48;
 						}
 					}else{
 						x = x*10 + targetname[13]-48;
 						y = targetname[15]-48;
-						if(targetname.Length() > 16) {
+						if(targetname.length() > 16) {
 							y = y*10 + targetname[16]-48;
 						}
 					}
 					
-					*disco_floor[x][y] = *pEntity;
-				}else if( targetname.Find("disco_hurt_") == 0 ) {
+					disco_floor[x][y] = pEntity;
+				}else if( targetname.find("disco_hurt_") == 0 ) {
 					if(targetname[11] > 57 || targetname[11] < 48) continue;
 					
 					int x = targetname[11]-48;
 					int y = 0;
 					if(targetname[12] > 57){
 						y = targetname[13]-48;
-						if(targetname.Length() > 14) {
+						if(targetname.length() > 14) {
 							y = y*10 + targetname[14]-48;
 						}
 					}else{
 						x = x*10 + targetname[12]-48;
 						y = targetname[14]-48;
-						if(targetname.Length() > 15) {
+						if(targetname.length() > 15) {
 							y = y*10 + targetname[15]-48;
 						}
 					}
 					
-					*disco_hurt[x][y] = *pEntity;
+					disco_hurt[x][y] = pEntity;
 				}else if( targetname == "variables") {
-					*gloVariables = *pEntity;
+					gloVariables = pEntity;
 				}
 			}
 		}
 		
-		SetThink( ThinkFunction( this->Think01 ) );
+		SetThink( &CDiscoFloorSystem::Think01 );
 		pev->nextthink = gpGlobals->time + 0.1f;
 	}
 	
 	void Think01() {
-		float timer2 = gpGlobals->time % 4.0f;
+		float timer2 = fmodf(gpGlobals->time, 4.0f);
 		for( int x = 0; x < 16; ++x ){
 			for( int y = 0; y < 16; ++y ){
 			
 				if( disco_floor[x][y]  == NULL ) continue;
 				
-				float timer = (64.0f + timer2 - sqrt((x-7.5f)*(x-7.5f)+(y-7.5f)*(y-7.5f)) *0.5f ) % 4.0f;
+				float timer = fmodf(64.0f + timer2 - sqrt((x-7.5f)*(x-7.5f)+(y-7.5f)*(y-7.5f)) *0.5f, 4.0f);
 				
 				float g = 0;
 				float b = 0;
@@ -127,27 +127,27 @@ class disco_floor_system : ScriptBaseEntity {
 					b = 255.0f - (timer-3.0f) * 255.0f;
 				}
 				
-				string colStr = "0 "+g+" "+b;
-				g_EntityFuncs.DispatchKeyValue( disco_floor[x][y]->edict(), "rendercolor", colStr );
+				string colStr = "0 "+to_string(g)+" "+to_string(b);
+				DispatchKeyValue( disco_floor[x][y]->edict(), "rendercolor", colStr.c_str() );
 			}
 		}
 		
-		float healthPercentage = gloVariables.GetCustomKeyvalues().GetKeyvalue("$f_health_percentage").GetFloat();
+		float healthPercentage = (*gloVariables->GetCustomKeyValues())["$f_health_percentage"].fVal;
 		if( healthPercentage <= 75.0f && healthPercentage > 0.0f ){
 			phaseBeginTime = gpGlobals->time;
-			SetThink( ThinkFunction( this->Think02 ) );
+			SetThink( &CDiscoFloorSystem::Think02 );
 		}
 		
 		pev->nextthink = gpGlobals->time + 0.0f;
 	}
 	
 	void Think02() {
-		float timer2 = gpGlobals->time % 4.0f;
+		float timer2 = fmodf(gpGlobals->time, 4.0f);
 		float multiplicator = ((3.1378540146f * 2.49f + 1.1f) - (gpGlobals->time - phaseBeginTime))/(3.1378540146f * 2.49f + 1.1f);
 		if(multiplicator < 0.0f) {
 			multiplicator = 0.0f;
 			phaseBeginTime += 3.1378540146f * 1.5f + 1.1f;
-			SetThink( ThinkFunction( this->Think03 ) );
+			SetThink( &CDiscoFloorSystem::Think03 );
 		}
 		
 		for( int x = 0; x < 16; ++x ){
@@ -155,7 +155,7 @@ class disco_floor_system : ScriptBaseEntity {
 			
 				if( disco_floor[x][y]  == NULL ) continue;
 				
-				float timer = (64.0f + timer2 - sqrt((x-7.5f)*(x-7.5f)+(y-7.5f)*(y-7.5f)) *0.5f ) % 4.0f;
+				float timer = fmodf(64.0f + timer2 - sqrt((x-7.5f)*(x-7.5f)+(y-7.5f)*(y-7.5f)) *0.5f, 4.0f);
 				
 				float g = 0;
 				float b = 0;
@@ -180,8 +180,8 @@ class disco_floor_system : ScriptBaseEntity {
 					b = 255.0f - (timer-3.0f) * 255.0f;
 				}
 				
-				string colStr = "0 "+g+" "+b;
-				g_EntityFuncs.DispatchKeyValue( disco_floor[x][y]->edict(), "rendercolor", colStr );
+				string colStr = "0 "+to_string(g)+" "+to_string(b);
+				DispatchKeyValue( disco_floor[x][y]->edict(), "rendercolor", colStr.c_str() );
 			}
 		}
 		
@@ -218,11 +218,11 @@ class disco_floor_system : ScriptBaseEntity {
 				}
 			}
 			
-			float healthPercentage = gloVariables.GetCustomKeyvalues().GetKeyvalue("$f_health_percentage").GetFloat();
+			float healthPercentage = (*gloVariables->GetCustomKeyValues())["$f_health_percentage"].fVal;
 			pev->dmg = 15.0f - (healthPercentage - 50.0f) * 0.4f;
 			if( healthPercentage <= 50.0f ){
 				phaseBeginTime = g_musicBeginTime + 1.91997959184f * 1.5f;
-				SetThink( ThinkFunction( this->Think04 ) );
+				SetThink( &CDiscoFloorSystem::Think04 );
 			}
 		}
 		
@@ -236,37 +236,37 @@ class disco_floor_system : ScriptBaseEntity {
 				
 				if(disco_hurt_status[x][y] == 0){
 					g = 255.0f;
-					g_EntityFuncs.DispatchKeyValue( disco_hurt[x][y]->edict(), "master", "disco_hurt_disabled" );
+					DispatchKeyValue( disco_hurt[x][y]->edict(), "master", "disco_hurt_disabled" );
 				}else if(disco_hurt_status[x][y] == 1){
 					g = 255.0f;
 					r = 255.0f;
 					if(stepTime >= 0.625f){
-						g -= 64.0f-(stepTime%0.125f*512.0f);
+						g -= 64.0f-fmodf(stepTime,0.125f)*512.0f;
 					}
-					g_EntityFuncs.DispatchKeyValue( disco_hurt[x][y]->edict(), "master", "disco_hurt_disabled" );
+					DispatchKeyValue( disco_hurt[x][y]->edict(), "master", "disco_hurt_disabled" );
 				}else if(disco_hurt_status[x][y] == 2){
 					r = 255.0f;
-					g_EntityFuncs.DispatchKeyValue( disco_hurt[x][y]->edict(), "master", "disco_hurt_enabled" );
+					DispatchKeyValue( disco_hurt[x][y]->edict(), "master", "disco_hurt_enabled" );
 				}else{
 					r = 255.0f;
 					if(stepTime >= 0.625f){
-						g = 64.0f-(stepTime%0.125f*512.0f);
+						g = 64.0f- fmodf(stepTime,0.125f)*512.0f;
 					}
-					g_EntityFuncs.DispatchKeyValue( disco_hurt[x][y]->edict(), "master", "disco_hurt_enabled" );
+					DispatchKeyValue( disco_hurt[x][y]->edict(), "master", "disco_hurt_enabled" );
 				}
 				
-				string colStr = ""+r+" "+g+" 0";
-				g_EntityFuncs.DispatchKeyValue( disco_floor[x][y]->edict(), "rendercolor", colStr );
+				string colStr = ""+to_string(r)+" "+to_string(g)+" 0";
+				DispatchKeyValue( disco_floor[x][y]->edict(), "rendercolor", colStr.c_str() );
 			}
 		}
 		
 		if((stepTime+0.04f) >= 0.625f){
-			if((stepTime+0.04f)%0.125f < 0.0625f){
+			if(fmodf(stepTime+0.04f, 0.125f) < 0.0625f){
 				if(soundStep == 0){
 					if((stepTime+0.02f) >= 0.875f){
-						g_EntityFuncs.FireTargets("floor_changing_sfx", NULL, NULL, USE_ON, 0.0f, 0.0f);
+						FireTargets("floor_changing_sfx", NULL, NULL, USE_ON, 0.0f);
 					}else{
-						g_EntityFuncs.FireTargets("floor_beeping_sfx", NULL, NULL, USE_ON, 0.0f, 0.0f);
+						FireTargets("floor_beeping_sfx", NULL, NULL, USE_ON, 0.0f);
 					}
 					soundStep = 1;
 				}
@@ -310,11 +310,11 @@ class disco_floor_system : ScriptBaseEntity {
 				}
 			}
 			
-			float healthPercentage = gloVariables.GetCustomKeyvalues().GetKeyvalue("$f_health_percentage").GetFloat();
+			float healthPercentage = (*gloVariables->GetCustomKeyValues())["$f_health_percentage"].fVal;
 			pev->dmg = 25.0f - (healthPercentage - 25.0f) * 0.4f;
 			if( healthPercentage <= 25.0f ){
 				phaseBeginTime = g_musicBeginTime + 1.69019608f;
-				SetThink( ThinkFunction( this->Think05 ) );
+				SetThink( &CDiscoFloorSystem::Think05 );
 				pev->dmg = 25.0f;
 			}
 		}
@@ -329,37 +329,37 @@ class disco_floor_system : ScriptBaseEntity {
 				
 				if(disco_hurt_status[x][y] == 0){
 					g = 255.0f;
-					g_EntityFuncs.DispatchKeyValue( disco_hurt[x][y]->edict(), "master", "disco_hurt_disabled" );
+					DispatchKeyValue( disco_hurt[x][y]->edict(), "master", "disco_hurt_disabled" );
 				}else if(disco_hurt_status[x][y] == 1){
 					g = 255.0f;
 					r = 255.0f;
 					if(stepTime >= 0.5f){
-						g -= 64.0f-(stepTime%0.25f*256.0f);
+						g -= 64.0f-fmodf(stepTime, 0.25f)*256.0f;
 					}
-					g_EntityFuncs.DispatchKeyValue( disco_hurt[x][y]->edict(), "master", "disco_hurt_disabled" );
+					DispatchKeyValue( disco_hurt[x][y]->edict(), "master", "disco_hurt_disabled" );
 				}else if(disco_hurt_status[x][y] == 2){
 					r = 255.0f;
-					g_EntityFuncs.DispatchKeyValue( disco_hurt[x][y]->edict(), "master", "disco_hurt_enabled" );
+					DispatchKeyValue( disco_hurt[x][y]->edict(), "master", "disco_hurt_enabled" );
 				}else{
 					r = 255.0f;
 					if(stepTime >= 0.5f){
-						g = 64.0f-(stepTime%0.25f*256.0f);
+						g = 64.0f- fmodf(stepTime, 0.25f)*256.0f;
 					}
-					g_EntityFuncs.DispatchKeyValue( disco_hurt[x][y]->edict(), "master", "disco_hurt_enabled" );
+					DispatchKeyValue( disco_hurt[x][y]->edict(), "master", "disco_hurt_enabled" );
 				}
 				
-				string colStr = ""+r+" "+g+" 0";
-				g_EntityFuncs.DispatchKeyValue( disco_floor[x][y]->edict(), "rendercolor", colStr );
+				string colStr = ""+to_string(r)+" "+to_string(g)+" 0";
+				DispatchKeyValue( disco_floor[x][y]->edict(), "rendercolor", colStr.c_str() );
 			}
 		}
 		
 		if((stepTime+0.04f) >= 0.5f){
-			if((stepTime+0.04f)%0.25f < 0.125f){
+			if(fmodf(stepTime+0.04f,0.25f) < 0.125f){
 				if(soundStep == 0){
 					if((stepTime+0.02f) >= 0.75f){
-						g_EntityFuncs.FireTargets("floor_changing_sfx", NULL, NULL, USE_ON, 0.0f, 0.0f);
+						FireTargets("floor_changing_sfx", NULL, NULL, USE_ON, 0.0f);
 					}else{
-						g_EntityFuncs.FireTargets("floor_beeping_sfx", NULL, NULL, USE_ON, 0.0f, 0.0f);
+						FireTargets("floor_beeping_sfx", NULL, NULL, USE_ON, 0.0f);
 					}
 					soundStep = 1;
 				}
@@ -403,8 +403,6 @@ class disco_floor_system : ScriptBaseEntity {
 					}
 				}
 			}
-			
-			float healthPercentage = gloVariables.GetCustomKeyvalues().GetKeyvalue("$f_health_percentage").GetFloat();
 		}
 		
 		//RenderFloor
@@ -417,42 +415,42 @@ class disco_floor_system : ScriptBaseEntity {
 				
 				if(disco_hurt_status[x][y] == 0){
 					g = 255.0f;
-					g_EntityFuncs.DispatchKeyValue( disco_hurt[x][y]->edict(), "master", "disco_hurt_disabled" );
+					DispatchKeyValue( disco_hurt[x][y]->edict(), "master", "disco_hurt_disabled" );
 				}else if(disco_hurt_status[x][y] == 1){
 					g = 255.0f;
 					r = 255.0f;
 					if(stepTime >= 0.5f){
-						g -= 64.0f-(stepTime%0.25f*256.0f);
+						g -= 64.0f- fmodf(stepTime,0.25f)*256.0f;
 					}
-					g_EntityFuncs.DispatchKeyValue( disco_hurt[x][y]->edict(), "master", "disco_hurt_disabled" );
+					DispatchKeyValue( disco_hurt[x][y]->edict(), "master", "disco_hurt_disabled" );
 				}else if(disco_hurt_status[x][y] == 2){
 					r = 255.0f;
-					g_EntityFuncs.DispatchKeyValue( disco_hurt[x][y]->edict(), "master", "disco_hurt_enabled" );
+					DispatchKeyValue( disco_hurt[x][y]->edict(), "master", "disco_hurt_enabled" );
 				}else{
 					r = 255.0f;
 					if(stepTime >= 0.5f){
-						g = 64.0f-(stepTime%0.25f*256.0f);
+						g = 64.0f- fmodf(stepTime, 0.25f)*256.0f;
 					}
-					g_EntityFuncs.DispatchKeyValue( disco_hurt[x][y]->edict(), "master", "disco_hurt_enabled" );
+					DispatchKeyValue( disco_hurt[x][y]->edict(), "master", "disco_hurt_enabled" );
 				}
 				
-				string colStr = ""+r+" "+g+" 0";
-				g_EntityFuncs.DispatchKeyValue( disco_floor[x][y]->edict(), "rendercolor", colStr );
+				string colStr = ""+to_string(r)+" "+to_string(g)+" 0";
+				DispatchKeyValue( disco_floor[x][y]->edict(), "rendercolor", colStr.c_str() );
 			}
 		}
 		
-		float healthPercentage2 = gloVariables.GetCustomKeyvalues().GetKeyvalue("$f_health_percentage").GetFloat();
+		float healthPercentage2 = (*gloVariables->GetCustomKeyValues())["$f_health_percentage"].fVal;
 		if( healthPercentage2 <= 0.0f ){
-			SetThink( ThinkFunction( this->Think06 ) );
+			SetThink( &CDiscoFloorSystem::Think06 );
 		}
 		
 		if(stepTime+0.04f >= 0.5f){
-			if((stepTime+0.04f)%0.25f < 0.125f){
+			if(fmodf(stepTime+0.04f, 0.25f) < 0.125f){
 				if(soundStep == 0){
 					if((stepTime+0.02f) >= 0.75f){
-						g_EntityFuncs.FireTargets("floor_changing_sfx", NULL, NULL, USE_ON, 0.0f, 0.0f);
+						FireTargets("floor_changing_sfx", NULL, NULL, USE_ON, 0.0f);
 					}else{
-						g_EntityFuncs.FireTargets("floor_beeping_sfx", NULL, NULL, USE_ON, 0.0f, 0.0f);
+						FireTargets("floor_beeping_sfx", NULL, NULL, USE_ON, 0.0f);
 					}
 					soundStep = 1;
 				}
@@ -470,15 +468,13 @@ class disco_floor_system : ScriptBaseEntity {
 		for( int x = 0; x < 16; ++x ){
 			for( int y = 0; y < 16; ++y ){
 				if(disco_floor[x][y]  == NULL ) continue;
-				g_EntityFuncs.DispatchKeyValue( disco_hurt[x][y]->edict(), "master", "disco_hurt_disabled" );
+				DispatchKeyValue( disco_hurt[x][y]->edict(), "master", "disco_hurt_disabled" );
 			}
 		}
 		
-		SetThink( ThinkFunction( this->Think01 ) );
+		SetThink( &CDiscoFloorSystem::Think01 );
 		pev->nextthink = gpGlobals->time + 0.0f;
 	}
-}
+};
 
-void RegisterDiscoFloorSystemCustomEntity() {
-	g_CustomEntityFuncs.RegisterCustomEntity( "disco_floor_system", "disco_floor_system" );
-}
+LINK_ENTITY_TO_CLASS(disco_floor_system, CDiscoFloorSystem)

@@ -1,17 +1,16 @@
+#include "extdll.h"
+#include "util.h"
+#include "CBasePlayer.h"
 
-class disco_drone : ScriptBaseEntity {
-	
-	vector<EHandle> grenades;
+using namespace std;
+
+extern int isBossRunning;
+
+class CDiscoDrone : public CBaseEntity {
+public:
+	vector<EHANDLE> grenades;
 	int currentArrIdx;
 	int numberPeople;
-	
-	bool KeyValue( const string&szKey, const string&szValue ) {
-		return BaseClass.KeyValue( szKey, szValue );
-	}
-	
-	void Precache() {
-		BaseClass.Precache();
-	}
 	
 	void Spawn() {
 		Precache();
@@ -21,21 +20,21 @@ class disco_drone : ScriptBaseEntity {
 		pev->solid = SOLID_NOT;
 		pev->movetype = MOVETYPE_NOCLIP;
 
-		SET_MODEL(edict(), pev->model);
+		SET_MODEL(edict(), STRING(pev->model));
 		UTIL_SetSize(pev, pev->mins, pev->maxs);
-		UTIL_SetOrigin(self, pev->origin);
+		UTIL_SetOrigin(pev, pev->origin);
 		
 		currentArrIdx = 0;
 		
 		grenades.resize( 32 );
 		
-		SetThink( ThinkFunction( this->WaitThink ) );
+		SetThink( &CDiscoDrone::WaitThink );
 		pev->nextthink = gpGlobals->time + 1.0f;
 	}
 	
 	void WaitThink(){
 		if(isBossRunning == 1){
-			SetThink( ThinkFunction( this->FlyToTargetThink ) );
+			SetThink( &CDiscoDrone::FlyToTargetThink );
 		}
 		pev->nextthink = gpGlobals->time + 1.0f;
 	}
@@ -49,16 +48,16 @@ class disco_drone : ScriptBaseEntity {
 		
 		CBasePlayer* pPlayer = NULL;
 		for( int iPlayer = 1; iPlayer <= gpGlobals->maxClients; ++iPlayer ){
-			*pPlayer = g_PlayerFuncs.FindPlayerByIndex( iPlayer );
+			pPlayer = UTIL_PlayerByIndex( iPlayer );
 			
-			if( pPlayer  == NULL  || !pPlayer->IsConnected() || !pPlayer->IsAlive() )
+			if( pPlayer == NULL || !pPlayer->IsAlive() )
 				continue;
 			
 			numberPeople += 1;
-			if(lowestGrenadeAmount > pPlayer.AmmoInventory(g_PlayerFuncs.GetAmmoIndex("Hand Grenade"))){
-				lowestGrenadeAmount = pPlayer.AmmoInventory(g_PlayerFuncs.GetAmmoIndex("Hand Grenade"));
+			if(lowestGrenadeAmount > pPlayer->AmmoInventory(pPlayer->GetAmmoIndex("Hand Grenade"))){
+				lowestGrenadeAmount = pPlayer->AmmoInventory(pPlayer->GetAmmoIndex("Hand Grenade"));
 				lowestGrenadeCount = 0;
-			}else if(lowestGrenadeAmount == pPlayer.AmmoInventory(g_PlayerFuncs.GetAmmoIndex("Hand Grenade"))){
+			}else if(lowestGrenadeAmount == pPlayer->AmmoInventory(pPlayer->GetAmmoIndex("Hand Grenade"))){
 				lowestGrenadeCount++;
 			}
 		}
@@ -72,12 +71,12 @@ class disco_drone : ScriptBaseEntity {
 			lowestGrenadeCount = 0;
 			
 			for( int iPlayer = 1; iPlayer <= gpGlobals->maxClients; ++iPlayer ){
-				*pPlayer = g_PlayerFuncs.FindPlayerByIndex( iPlayer );
+				pPlayer = UTIL_PlayerByIndex( iPlayer );
 				
-				if( pPlayer  == NULL  || !pPlayer->IsConnected() || !pPlayer->IsAlive() )
+				if( pPlayer  == NULL || !pPlayer->IsAlive() )
 					continue;
 				
-				if(lowestGrenadeAmount == pPlayer.AmmoInventory(g_PlayerFuncs.GetAmmoIndex("Hand Grenade"))){
+				if(lowestGrenadeAmount == pPlayer->AmmoInventory(pPlayer->GetAmmoIndex("Hand Grenade"))){
 					lowestGrenadeCount++;
 					
 					if(lowestGrenadeCount > targetGrenadeCount){
@@ -108,7 +107,7 @@ class disco_drone : ScriptBaseEntity {
 		pev->velocity.x = ((x-pev->origin.x)/distance)*speed;
 		pev->velocity.y = ((y-pev->origin.y)/distance)*speed;
 		
-		SetThink( ThinkFunction( this->DropgrenadeThink1 ) );
+		SetThink( &CDiscoDrone::DropgrenadeThink1 );
 		pev->nextthink = gpGlobals->time + (distance/speed);
 	}
 	
@@ -116,7 +115,7 @@ class disco_drone : ScriptBaseEntity {
 		pev->velocity.x = 0.0f;
 		pev->velocity.y = 0.0f;
 		
-		SetThink( ThinkFunction( this->DropgrenadeThink2 ) );
+		SetThink( &CDiscoDrone::DropgrenadeThink2 );
 		
 		int np = numberPeople;
 		if(np > 16) np = 16;
@@ -132,21 +131,18 @@ class disco_drone : ScriptBaseEntity {
 		}
 		
 		//Destroy Grenade-Ammo
-		if( EHandle(grenades[currentArrIdx]).IsValid() ){
-			UTIL_Remove( EHandle(grenades[currentArrIdx]).GetEntity() );
+		if( grenades[currentArrIdx] ){
+			UTIL_Remove( grenades[currentArrIdx] );
 		}
 		
 		//Create Grenade-Ammo
-		grenades[currentArrIdx] = EHandle(g_EntityFuncs.Create("weapon_handgrenade", pev->origin, Vector(0, 0, 0), false));
+		grenades[currentArrIdx] = CBaseEntity::Create("weapon_handgrenade", pev->origin, Vector(0, 0, 0), true);
 		
-		SetThink( ThinkFunction( this->FlyToTargetThink ) );
+		SetThink( &CDiscoDrone::FlyToTargetThink );
 		int np = numberPeople;
 		if(np > 16) np = 16;
 		pev->nextthink = gpGlobals->time + 1.6f - 0.1f * float(np);
 	}
-	
-}
+};
 
-void RegisterDiscoDroneCustomEntity() {
-	g_CustomEntityFuncs.RegisterCustomEntity( "disco_drone", "disco_drone" );
-}
+LINK_ENTITY_TO_CLASS(disco_drone, CDiscoDrone)

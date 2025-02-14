@@ -1,19 +1,20 @@
-#include "point_checkpoint"
-#include "HLSPClassicMode"
-#include "cubemath/disco_floor_system"
-#include "cubemath/disco_drone"
-#include "cubemath/disco_disconator"
-#include "cubemath/disco_breakable"
+#include "extdll.h"
+#include "util.h"
 
-void MapInit()
+HOOK_RETURN_DATA MapInit()
 {
-	RegisterPointCheckPointEntity();
-	RegisterDiscoFloorSystemCustomEntity();
-	RegisterDiscoDroneCustomEntity();
-	RegisterDiscoDisconatorCustomEntity();
-	RegisterDiscoBreakableCustomEntity();
-	
-	g_engfuncs.pfnCVarSetFloat( "mp_hevsuit_voice", 1 );
-	
-	ClassicModeMapInit();
+	CVAR_SET_FLOAT( "mp_hevsuit_voice", 1 );
+	//ClassicModeMapInit();
+	return HOOK_CONTINUE;
+}
+
+HLCOOP_PLUGIN_HOOKS g_hooks;
+
+extern "C" int DLLEXPORT PluginInit() {
+	g_hooks.pfnMapInit = MapInit;
+	return RegisterPlugin(&g_hooks);
+}
+
+extern "C" void DLLEXPORT PluginExit() {
+	// nothing to clean up
 }
