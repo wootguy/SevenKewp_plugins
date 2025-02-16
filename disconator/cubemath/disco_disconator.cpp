@@ -27,7 +27,7 @@ const float musicLag = -0.75f;
 
 class disco_player {
 public:
-	CBasePlayer* m_pPlayer = NULL;
+	EHANDLE m_pPlayer = NULL;
 	vector<Vector> oldPos;
 
 	disco_player() {}
@@ -61,7 +61,7 @@ void delay_calc_position(disco_aim_cross* cross);
 
 class disco_aim_cross {
 public:
-	CBasePlayer* pTargetPlayer = NULL;
+	EHANDLE pTargetPlayer = NULL;
 	Vector targetPos = Vector(0,0,0);
 	int playerIndex = 0;
 
@@ -130,7 +130,7 @@ public:
 				if (pPlayer == NULL || !pPlayer->IsAlive())
 					continue;
 
-				if (g_disco_player[pPlayer->entindex() - 1].m_pPlayer == NULL) {
+				if (!g_disco_player[pPlayer->entindex() - 1].m_pPlayer) {
 					disco_player data(pPlayer);
 					g_disco_player[pPlayer->entindex() - 1] = data;
 				}
@@ -139,7 +139,7 @@ public:
 				}
 			}
 
-			if (pTargetPlayer == NULL || !pTargetPlayer->IsAlive()) {
+			if (!pTargetPlayer || !IsValidPlayer(pTargetPlayer.GetEdict()) || !pTargetPlayer->IsAlive()) {
 				targetPos.x = 0.0f;
 				targetPos.y = 0.0f;
 
@@ -170,10 +170,10 @@ disco_aim_cross g_disco_aim_cross;
 class CDiscoHealthLogic : public CBaseEntity {
 public:
 	
-	CBaseEntity* gloVariables;
-	CBaseEntity* bossHealthBox;
-	CBaseEntity* messageEntity;
-	CBaseEntity* disconatorEntity;
+	EHANDLE gloVariables;
+	EHANDLE bossHealthBox;
+	EHANDLE messageEntity;
+	EHANDLE disconatorEntity;
 	
 	int laserLevel;
 	int bossLevel;
@@ -440,7 +440,7 @@ public:
 
 class CDiscoDisconator : public CBaseAnimating {
 public:
-	CBaseEntity* gloVariables2;
+	EHANDLE gloVariables2;
 	
 	void Precache() {		
 		PRECACHE_MODEL( "models/cubemath/arrow2d.mdl" );
@@ -662,8 +662,8 @@ public:
 
 class CDiscoDisconator2 : public CBaseAnimating {
 public:
-	CBaseEntity* gloVariables2;
-	CBaseEntity* aimCross;
+	EHANDLE gloVariables2;
+	EHANDLE aimCross;
 	
 	// if youre gonna use this in your script, make sure you dont try to access invalid animations -zode
 	void SetAnim(int animIndex) {
@@ -838,8 +838,8 @@ public:
 
 class CDiscoDisconator3 : public CBaseAnimating {
 public:
-	CBaseEntity* gloVariables2;
-	CBaseEntity* aimCross;
+	EHANDLE gloVariables2;
+	EHANDLE aimCross;
 	
 	// if youre gonna use this in your script, make sure you dont try to access invalid animations -zode
 	void SetAnim(int animIndex) {
