@@ -198,7 +198,7 @@ public:
 			}
 		}
 		
-		unordered_map<string, string> keyvalues = {
+		StringMap keyvalues = {
 			{"message", "Health: 100.0"},
 			{"targetname", "show_health"},
 			{"delay", "0"},
@@ -225,7 +225,7 @@ public:
 	}
 	
 	void Think01(){
-		int bossmode = (*gloVariables->GetCustomKeyValues())["$i_bossmode"].iVal;
+		int bossmode = gloVariables->GetCustomKeyValue("$i_bossmode").iVal;
 		
 		if(bossmode == 1){
 			g_musicBeginTime = 0.0f;
@@ -241,10 +241,9 @@ public:
 	}
 	
 	void Think02(){
-		unordered_map<string, CKeyValue>& keyValues1 = *gloVariables->GetCustomKeyValues();
-		float maxHealth = keyValues1["$f_maxhealth"].fVal;
-		float health = keyValues1["$f_health"].fVal;
-		float healthPercentage = keyValues1["$f_health_percentage"].fVal;
+		float maxHealth = gloVariables->GetCustomKeyValue("$f_maxhealth").fVal;
+		float health = gloVariables->GetCustomKeyValue("$f_health").fVal;
+		float healthPercentage = gloVariables->GetCustomKeyValue("$f_health_percentage").fVal;
 		
 		if(bossHealthBox ){
 			health -= 100000.0f - bossHealthBox->pev->health;
@@ -493,7 +492,7 @@ public:
 	}
 	
 	void ThinkWait(){
-		int bossmode = (*gloVariables2->GetCustomKeyValues())["$i_bossmode"].iVal;
+		int bossmode = gloVariables2->GetCustomKeyValue("$i_bossmode").iVal;
 		
 		if(bossmode == 1){
 			g_disco_aim_cross.ThinkResizeArray();
@@ -509,7 +508,7 @@ public:
 		
 		SetAnim(DISCONATOR_IDLE);
 		
-		float pHealth = (*gloVariables2->GetCustomKeyValues())["$f_health_percentage"].fVal;
+		float pHealth = gloVariables2->GetCustomKeyValue("$f_health_percentage").fVal;
 		
 		if(pHealth > 90.0f){
 			if(RANDOM_LONG( 0, 1 ) == 1){
@@ -608,7 +607,7 @@ public:
 		CBaseEntity* pEntity = CBaseEntity::Create("disco_fireball", fireballPos, Vector(0, 0, 0), true);
 		
 		float power = 0.0f;
-		float pHealth = (*gloVariables2->GetCustomKeyValues())["$f_health_percentage"].fVal;
+		float pHealth = gloVariables2->GetCustomKeyValue("$f_health_percentage").fVal;
 		if(pHealth > 90.0f){
 			power = RANDOM_FLOAT( 0.0f, 1.0f );
 		}else{
@@ -642,7 +641,7 @@ public:
 		CBaseEntity* pEntity = CBaseEntity::Create("disco_fireball", fireballPos, Vector(0, 0, 0), true);
 		
 		float power = 0.0f;
-		float pHealth = (*gloVariables2->GetCustomKeyValues())["$f_health_percentage"].fVal;
+		float pHealth = gloVariables2->GetCustomKeyValue("$f_health_percentage").fVal;
 		if(pHealth > 90.0f){
 			power = RANDOM_FLOAT( 0.0f, 1.0f );
 		}else{
@@ -710,7 +709,7 @@ public:
 		g_disco_aim_cross.ShufflePlayer();
 		SetAnim(DISCONATOR_IDLE);
 		
-		float pHealth = (*gloVariables2->GetCustomKeyValues())["$f_health_percentage"].fVal;
+		float pHealth = gloVariables2->GetCustomKeyValue("$f_health_percentage").fVal;
 		
 		float currentRotation = pev->angles.y / 180.0f * 3.14159265358979323846f;
 		float pathLength = sqrt(g_disco_aim_cross.targetPos.x*g_disco_aim_cross.targetPos.x+g_disco_aim_cross.targetPos.y*g_disco_aim_cross.targetPos.y);
@@ -883,7 +882,7 @@ public:
 		g_disco_aim_cross.ShufflePlayer();
 		SetAnim(DISCONATOR_IDLE);
 		
-		float pHealth = (*gloVariables2->GetCustomKeyValues())["$f_health_percentage"].fVal;
+		float pHealth = gloVariables2->GetCustomKeyValue("$f_health_percentage").fVal;
 		
 		float currentRotation = pev->angles.y / 180.0f * 3.14159265358979323846f;
 		float pathLength = sqrt(g_disco_aim_cross.targetPos.x*g_disco_aim_cross.targetPos.x+g_disco_aim_cross.targetPos.y*g_disco_aim_cross.targetPos.y);

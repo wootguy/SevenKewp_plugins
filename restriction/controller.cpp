@@ -116,7 +116,7 @@ void npc_controller(CBaseEntity* pActivator, CBaseEntity* pCaller, USE_TYPE useT
 				Vector psychCamAngles = UTIL_VecToAngles(vecToTarget * Vector(1,1,-1));
 				Vector psychCamOrigin = controller->pev->origin + Vector(0,0,64) - vecToTarget.Normalize() * 55;
 
-				std::unordered_map<std::string, std::string> keys = {
+				StringMap keys = {
 					{"wait", "1" }
 				};
 				CBaseEntity* psychCam = CBaseEntity::Create("trigger_camera", psychCamOrigin, psychCamAngles,

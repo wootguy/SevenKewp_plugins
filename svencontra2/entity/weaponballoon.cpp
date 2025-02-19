@@ -152,7 +152,7 @@ public:
             WRITE_BYTE(0);
         MESSAGE_END();
 
-        unordered_map<string, string> keys = {
+        StringMap keys = {
             {"m_flCustomRespawnTime", "-1"},
             {"IsNotAmmoItem", "1"}
         };

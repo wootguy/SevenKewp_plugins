@@ -132,7 +132,7 @@ class CDiscoFloorSystem : public CBaseEntity {
 			}
 		}
 		
-		float healthPercentage = (*gloVariables->GetCustomKeyValues())["$f_health_percentage"].fVal;
+		float healthPercentage = gloVariables->GetCustomKeyValue("$f_health_percentage").fVal;
 		if( healthPercentage <= 75.0f && healthPercentage > 0.0f ){
 			phaseBeginTime = gpGlobals->time;
 			SetThink( &CDiscoFloorSystem::Think02 );
@@ -218,7 +218,7 @@ class CDiscoFloorSystem : public CBaseEntity {
 				}
 			}
 			
-			float healthPercentage = (*gloVariables->GetCustomKeyValues())["$f_health_percentage"].fVal;
+			float healthPercentage = gloVariables->GetCustomKeyValue("$f_health_percentage").fVal;
 			pev->dmg = 15.0f - (healthPercentage - 50.0f) * 0.4f;
 			if( healthPercentage <= 50.0f ){
 				phaseBeginTime = g_musicBeginTime + 1.91997959184f * 1.5f;
@@ -310,7 +310,7 @@ class CDiscoFloorSystem : public CBaseEntity {
 				}
 			}
 			
-			float healthPercentage = (*gloVariables->GetCustomKeyValues())["$f_health_percentage"].fVal;
+			float healthPercentage = gloVariables->GetCustomKeyValue("$f_health_percentage").fVal;
 			pev->dmg = 25.0f - (healthPercentage - 25.0f) * 0.4f;
 			if( healthPercentage <= 25.0f ){
 				phaseBeginTime = g_musicBeginTime + 1.69019608f;
@@ -439,7 +439,7 @@ class CDiscoFloorSystem : public CBaseEntity {
 			}
 		}
 		
-		float healthPercentage2 = (*gloVariables->GetCustomKeyValues())["$f_health_percentage"].fVal;
+		float healthPercentage2 = gloVariables->GetCustomKeyValue("$f_health_percentage").fVal;
 		if( healthPercentage2 <= 0.0f ){
 			SetThink( &CDiscoFloorSystem::Think06 );
 		}
